@@ -138,7 +138,7 @@ function init(){
 var P,ACT,MAIL,M,MQ={},TOKEN=D.token;
 function pd(s){var p=String(s||'').split('.');return p.length>=3?new Date(+p[2].slice(0,4),+p[1]-1,+p[0]):null}
 function setData(d){D=d;D.token=TOKEN;var H=d.head,C={};H.forEach(function(h,i){C[h]=i});
-P=d.rows.map(function(r){return{fio:r[C['ФИО']],stage:r[C['Стадия']]||'',city:r[C['Город']],last:r[C['Посл. контакт']],days:r[C['Дней']]===''?null:+r[C['Дней']],nt:r[C['Шаг (тип)']],nd:r[C['Шаг (дата)']],ntm:r[C['Шаг (время)']],ov:+r[C['Просрочен, дн.']]||0,st:r[C['Статус']],pulse:r[C['Пульс']]||'',n30:r[C['Контактов за 30 дн.']],who:r[C['Кто такой']],note:r[C['Заметка']],id:r[C['ID']]||''}});
+P=d.rows.map(function(r){return{fio:r[C['ФИО']],stage:r[C['Стадия']]||'',city:r[C['Город']],last:r[C['Посл. контакт']],days:r[C['Дней']]===''?null:+r[C['Дней']],nt:r[C['Шаг (тип)']],nd:r[C['Шаг (дата)']],ntm:r[C['Шаг (время)']],ov:+r[C['Просрочен, дн.']]||0,st:r[C['Статус']],pulse:r[C['Пульс']]||'',n30:r[C['Контактов за 30 дн.']],who:r[C['Кто такой']],note:r[C['Заметка']],id:r[C['ID']]||''}}).filter(function(c){return !/^Тестов|дубль/i.test(c.fio||'')});
 ACT=(d.act||[]).map(function(r){var x=pd(r[0]);if(x&&x.getFullYear()<100)x.setFullYear(x.getFullYear()+2000);return{d:x,ds:r[0],fio:r[1],t:r[2],o:r[3],c:r[4]}}).filter(function(r){return r.d});
 MAIL=d.mail||{rows:[]};MQ=d.mq||{};M=d.meta}
 setData(D);window.__fresh=function(d){if(sheetOn||W)return false;try{setData(d);draw(true);return true}catch(e){return false}};
@@ -153,8 +153,21 @@ function svg(k,w){return '<svg aria-hidden="true" focusable="false" viewBox="0 0
 var NAV=[['today','Сегодня'],['dig','Очередь'],['add','Запись'],['stat','Итоги'],['more','Ещё']];
 function navKey(t){return {day:'more',mail:'more',fun:'more'}[t]||t}
 $('nav').innerHTML='<i class="ind" id="ind"></i>'+NAV.map(function(t){return '<button class="tab'+(t[0]==='add'?' add':'')+'" id="t-'+t[0]+'" data-t="'+t[0]+'">'+svg(t[0])+'<span>'+t[1]+'</span></button>'}).join('');
-function pass(f){return P.filter(function(c){if(c.stage==='Отказ/Стоп')return false;return f==='ov'?c.ov>0:f==='cool'?c.st==='остывает':f==='sil'?c.st==='давно молчит':f==='ns'?c.st==='нет шага':f==='mail'?c.st==='ждёт рассылки':true})}
-function why(c){var r=[];if(c.ov)r.push((c.nt||'Шаг')+' · план был '+(c.nd||''));else if(c.st==='остывает')r.push('остывает, без шага');else if(c.st==='давно молчит')r.push('давно молчит');else if(c.st==='нет шага')r.push('нет следующего шага');else if(c.st==='ждёт рассылки')r.push('ждёт рассылки');if(c.days!=null&&!c.ov)r.push(c.days+' дн. без контакта');return r.join(' · ')}
+function hasStep(c){return !!(c.nd&&pd(c.nd))}
+function farStep(c){var d=hasStep(c)?pd(c.nd):null;return !!d&&(d-TODAY)/86400000>60}
+function pass(f){return P.filter(function(c){var ref=c.stage==='Отказ/Стоп';
+if(f==='ref')return ref&&c.days!=null&&c.days>=75;
+if(ref)return false;
+if(f==='ov')return c.ov>0;
+if(f==='cool')return c.st==='остывает';
+if(f==='mail')return c.st==='ждёт рассылки';
+if(f==='new')return c.st==='нет контактов';
+var free=!(c.ov>0)&&c.st!=='остывает'&&c.st!=='ждёт рассылки'&&c.st!=='нет контактов';
+var ns=!hasStep(c)||farStep(c),old=c.days!=null&&c.days>=30;
+if(f==='sil')return free&&(c.st==='давно молчит'||(ns&&old));
+if(f==='ns')return free&&c.st!=='давно молчит'&&ns&&!old;
+return true})}
+function why(c){var r=[];if(c.stage==='Отказ/Стоп'){return c.days>=90?'отказ · пора вернуть в работу':'отказ · вернуть через '+(90-c.days)+' дн.'}if(c.st==='нет контактов')return 'ещё ни разу не звонил';if(c.ov)r.push((c.nt||'Шаг')+' · план был '+(c.nd||''));else if(c.st==='остывает')r.push('остывает, без шага');else if(c.st==='давно молчит')r.push('давно молчит');else if(c.st==='ждёт рассылки')r.push('ждёт рассылки');else if(!hasStep(c))r.push('нет даты следующего шага');else if(farStep(c))r.push('шаг '+c.nd+' — слишком далеко');if(c.days!=null&&!c.ov)r.push(c.days+' дн. без контакта');return r.join(' · ')}
 var PL={w:'звонок',h:'встреча',r:'отказ',n:'без результата'};var PI={w:'<path d="M6 3h3l2 5-2.5 1.5a11 11 0 0 0 5 5L15 12l5 2v3a2 2 0 0 1-2 2A15 15 0 0 1 4 5a2 2 0 0 1 2-2z"/>',h:'<circle cx="9" cy="8" r="3"/><path d="M3 20v-1a5 5 0 0 1 10 0v1"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14a4.5 4.5 0 0 1 5 4.5V20"/>',r:'<path d="M6 6l12 12M18 6L6 18"/>',n:'<path d="M6 12h12"/>'};function pulse(p){return p?'<div class="pulse" role="img" aria-label="Последние контакты (от старых к новым): '+p.split('').map(function(x){return PL[x]||PL.n}).join(', ')+'">'+p.split('').map(function(x){x=PI[x]?x:'n';return '<span class="'+x+'" title="'+PL[x]+'"><svg viewBox="0 0 24 24" aria-hidden="true">'+PI[x]+'</svg></span>'}).join('')+'</div>':''}
 function item(c){return '<button class="li" data-c="'+esc(c.fio)+'"><div class="t"><b>'+esc(c.fio)+'</b><span class="d'+(c.ov?' al':'')+'">'+(c.ov?c.ov+' дн.':(c.days!=null?c.days+' дн.':'—'))+'</span></div><div class="tags"><span class="tag">'+esc(c.stage||'без стадии')+'</span>'+(c.ov?'<span class="tag r">просрочено</span>':'')+'</div><div class="w">'+esc(why(c))+'</div>'+pulse(c.pulse)+'</button>'}
 function list(a,n){return a.length?a.slice(0,n||200).map(item).join(''):'<div class="empty">Пусто</div>'}
@@ -170,9 +183,9 @@ h+='<div class="two"><button class="stat al" data-g="ov"><span class="lab">Пр�
 h+='<div class="tiles">'+[['dig','ov','dig','Очередь','просрочки · '+pass('ov').length],['find','','find','Клиенты','поиск и карточки'],['day','','day','День','встречи и звонки'],['mail','','mail','Рассылка',MAIL.rows.length+' в списке'],['stat','','stat','Итоги','неделя и месяц'],['fun','','fun','Воронка','по стадиям']].map(function(t){return '<button class="tile" data-g="'+t[1]+'" data-to="'+t[0]+'">'+svg(t[2])+'<div><b>'+t[3]+'</b><br><span>'+t[4]+'</span></div></button>'}).join('')+'</div>';
 h+='<p class="note">Данные на '+esc(M['обновлено'])+'</p>';return h}
 function more(){return '<div><h1>Ещё</h1><p class="sub">Остальные разделы</p></div><div class="tiles" style="grid-template-columns:1fr 1fr">'+[['find','Клиенты','поиск и карточки'],['day','День','встречи и звонки по шагам'],['mail','Рассылка',MAIL.rows.length+' в списке'],['fun','Воронка','клиенты по стадиям']].map(function(t){return '<button class="tile" data-to="'+t[0]+'">'+svg(t[0])+'<div><b>'+t[1]+'</b><br><span>'+t[2]+'</span></div></button>'}).join('')+'<button class="tile" data-undo="1">'+svg('back')+'<div><b>Отменить</b><br><span>последнюю запись</span></div></button><button class="tile" data-rf="1">'+svg('ref')+'<div><b>Обновить</b><br><span>пересчитать данные</span></div></button></div>'}
-function dig(){var tabs=[['ov','Просрочено'],['cool','Остывают'],['sil','Молчат'],['ns','Нет шага'],['mail','Ждут рассылки']];
-var a=pass(flt);if(flt==='ov')a=a.slice().sort(function(x,y){return y.ov-x.ov});
-return '<div><h1>Очередь</h1><p class="sub">Кого и почему сегодня трогать</p></div><div class="chips">'+tabs.map(function(t){return '<button class="chip" data-f="'+t[0]+'" aria-pressed="'+(flt===t[0])+'">'+t[1]+' '+pass(t[0]).length+'</button>'}).join('')+'</div>'+list(a)}
+function dig(){var tabs=[['ov','Просрочено'],['cool','Остывают'],['sil','Молчат 30+'],['ns','Нет шага'],['new','Новые'],['mail','Рассылка'],['ref','Отказы']];
+var a=pass(flt);if(flt==='ov')a=a.slice().sort(function(x,y){return y.ov-x.ov});else if(flt==='sil'||flt==='ns'||flt==='ref')a=a.slice().sort(function(x,y){return (y.days||0)-(x.days||0)});
+return '<div><h1>Очередь</h1><p class="sub">Кого и почему сегодня трогать</p></div><div class="chips">'+tabs.map(function(t){return '<button class="chip" data-f="'+t[0]+'" aria-pressed="'+(flt===t[0])+'">'+t[1]+' '+pass(t[0]).length+'</button>'}).join('')+'</div>'+(flt==='new'?'<div class="lab" style="font-weight:800">Сегодня · '+Math.min(5,a.length)+'</div>'+list(a.slice(0,5))+(a.length>5?'<div class="lab" style="font-weight:800;margin-top:8px">Дальше · '+(a.length-5)+'</div>'+list(a.slice(5),60):''):list(a))}
 function fun(){if(fstage!==null){var a=P.filter(function(c){return(c.stage||'без стадии')===fstage});return '<div><h1 style="font-size:2rem;letter-spacing:-1.5px">'+esc(fstage)+'</h1><p class="sub">'+a.length+' клиентов</p></div>'+list(a)}
 var cnt={};P.forEach(function(c){var s=c.stage||'без стадии';cnt[s]=(cnt[s]||0)+1});var mx=Math.max.apply(null,Object.keys(cnt).map(function(k){return cnt[k]}));
 var names=STAGES.concat(cnt['без стадии']?['без стадии']:[]);
@@ -332,7 +345,7 @@ if(t&&a){try{history.replaceState(null,'',location.pathname)}catch(e){}}
 API=a||'';QT=t||'';
 if(!t||!a){D={error:'Откройте мини-апп кнопкой из бота.'};start();return}
 $('app').innerHTML='<div class="err"><p class="sub">Загружаю…</p></div>';
-var BUILD='20261025d';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
+var BUILD='20261025e';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
 var CK='v67cache',cached=null,shown=false;try{cached=JSON.parse(localStorage.getItem(CK)||'null')}catch(e){}
 if(cached&&cached.rows&&cached.head){cached.token=t;D=cached;shown=true;start()}
 fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:'data',args:[t]})}).then(function(r){return r.json()}).then(function(j){var d=j.res||{error:j.err||'Ошибка'};
