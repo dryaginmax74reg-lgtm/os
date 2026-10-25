@@ -332,6 +332,7 @@ if(t&&a){try{history.replaceState(null,'',location.pathname)}catch(e){}}
 API=a||'';QT=t||'';
 if(!t||!a){D={error:'Откройте мини-апп кнопкой из бота.'};start();return}
 $('app').innerHTML='<div class="err"><p class="sub">Загружаю…</p></div>';
+var BUILD='20261025b';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
 var CK='v67cache',cached=null,shown=false;try{cached=JSON.parse(localStorage.getItem(CK)||'null')}catch(e){}
 if(cached&&cached.rows&&cached.head){cached.token=t;D=cached;shown=true;start()}
 fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:'data',args:[t]})}).then(function(r){return r.json()}).then(function(j){var d=j.res||{error:j.err||'Ошибка'};
