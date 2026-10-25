@@ -137,7 +137,7 @@ function init(){
 var P,ACT,MAIL,M,MQ={},TOKEN=D.token;
 function pd(s){var p=String(s||'').split('.');return p.length>=3?new Date(+p[2].slice(0,4),+p[1]-1,+p[0]):null}
 function setData(d){D=d;D.token=TOKEN;var H=d.head,C={};H.forEach(function(h,i){C[h]=i});
-P=d.rows.map(function(r){return{fio:r[C['ФИО']],stage:r[C['Стадия']]||'',city:r[C['Город']],last:r[C['Посл. контакт']],days:r[C['Дней']]===''?null:+r[C['Дней']],nt:r[C['Шаг (тип)']],nd:r[C['Шаг (дата)']],ntm:r[C['Шаг (время)']],ov:+r[C['Просрочен, дн.']]||0,st:r[C['Статус']],pulse:r[C['Пульс']]||'',n30:r[C['Контактов за 30 дн.']],who:r[C['Кто такой']],note:r[C['Заметка']]}});
+P=d.rows.map(function(r){return{fio:r[C['ФИО']],stage:r[C['Стадия']]||'',city:r[C['Город']],last:r[C['Посл. контакт']],days:r[C['Дней']]===''?null:+r[C['Дней']],nt:r[C['Шаг (тип)']],nd:r[C['Шаг (дата)']],ntm:r[C['Шаг (время)']],ov:+r[C['Просрочен, дн.']]||0,st:r[C['Статус']],pulse:r[C['Пульс']]||'',n30:r[C['Контактов за 30 дн.']],who:r[C['Кто такой']],note:r[C['Заметка']],id:r[C['ID']]||''}});
 ACT=(d.act||[]).map(function(r){var x=pd(r[0]);if(x&&x.getFullYear()<100)x.setFullYear(x.getFullYear()+2000);return{d:x,ds:r[0],fio:r[1],t:r[2],o:r[3],c:r[4]}}).filter(function(r){return r.d});
 MAIL=d.mail||{rows:[]};MQ=d.mq||{};M=d.meta}
 setData(D);
@@ -223,7 +223,7 @@ function tchips(field){var sel=W[field];return '<div class="chips">'+['10:00','1
 var OUTS={call:[['ph','🔥 Тёплый'],['pc','🧊 Холодный'],['m','Встреча назначена'],['c','Назначен звонок'],['u','📵 Неудобно'],['r','Отказ']],meet:[['h','Проведена'],['p','Прогрев'],['o','Открыл счёт'],['r','Отказ']]};
 function needNext(){if(W.kind==='call')return(W.out==='ph'||W.out==='pc'||W.out==='p')&&HOT.indexOf(W.stage)>=0;if(W.kind==='meet')return W.out==='h'||W.out==='p'||W.out==='ph'||W.out==='pc';return false}
 function valid(){if(W.kind==='step')return !!W.dk&&(W.type==='Звонок'||!!W.tm);if(!W.out)return false;if(W.kind==='call'){if(W.out==='m')return !!W.dk&&!!W.tm;if(W.out==='c')return !!W.dk}if(needNext()&&!W.ndk)return false;return true}
-function wiz(kind,fio){var c=P.filter(function(x){return x.fio===(fio||cardName)})[0];if(!c)return;W={kind:kind,fio:c.fio,stage:c.stage,out:null,dk:null,tm:null,ndk:null,ntm:'11:00',type:'Звонок',cm:''};wrender(true)}
+function wiz(kind,fio){var c=P.filter(function(x){return x.fio===(fio||cardName)})[0];if(!c)return;W={kind:kind,fio:c.fio,id:c.id||'',stage:c.stage,out:null,dk:null,tm:null,ndk:null,ntm:'11:00',type:'Звонок',cm:''};wrender(true)}
 function wrender(open){var h='<h3>'+({call:'Звонок',meet:'Встреча',step:'Следующий шаг'}[W.kind])+' · '+esc(W.fio)+'</h3>';
 if(W.kind==='step'){h+='<div class="opts">'+['Звонок','Встреча'].map(function(t){return '<button class="opt" data-wtype="'+t+'" aria-pressed="'+(W.type===t)+'">'+t+'</button>'}).join('')+'</div><div class="fl">Дата</div>'+dchips('dk')+'<div class="fl">Время'+(W.type==='Встреча'?'':' (по желанию)')+'</div>'+tchips('tm')}
 else{h+='<div class="opts">'+OUTS[W.kind].map(function(o){return '<button class="opt'+(o[0]==='r'?' danger':'')+'" data-wo="'+o[0]+'" aria-pressed="'+(W.out===o[0])+'">'+o[1]+'</button>'}).join('')+'</div>';
@@ -244,8 +244,8 @@ function call(fn,args,ok,fail){if(!API){fail&&fail('Нет связи с таб�
 var LA=null;
 function isoD(s){var m=/^(\d{4})-(\d\d)-(\d\d)$/.exec(s||'');return m?m[3]+'.'+m[2]+'.'+m[1]:''}
 function ovOf(nd){var x=pd(nd);if(!x)return 0;var n=Math.round((TODAY-x)/86400000);return n>0?n:0}
-function patchLocal(pt){if(!pt)return;var c=P.filter(function(x){return x.fio===pt.fio})[0];if(!c){c={fio:pt.fio,stage:'',city:'',last:'',days:null,nt:'',nd:'',ntm:'',ov:0,st:'',pulse:'',n30:0,who:'',note:''};P.push(c)}
-c.stage=pt.stage||'';c.last=pt.last||'';c.days=pt.days===''?null:+pt.days;c.nt=pt.nt||'';c.nd=pt.nd||'';c.ntm=pt.ntm||'';c.ov=ovOf(c.nd);c.who=pt.who||'';c.note=pt.note||'';c.city=pt.city||''}
+function patchLocal(pt){if(!pt)return;var c=P.filter(function(x){return x.fio===pt.fio})[0];if(!c){c={fio:pt.fio,stage:'',city:'',last:'',days:null,nt:'',nd:'',ntm:'',ov:0,st:'',pulse:'',n30:0,who:'',note:'',id:''};P.push(c)}
+c.stage=pt.stage||'';c.last=pt.last||'';c.days=pt.days===''?null:+pt.days;c.nt=pt.nt||'';c.nd=pt.nd||'';c.ntm=pt.ntm||'';c.ov=ovOf(c.nd);c.id=pt.id||c.id||'';c.who=pt.who||'';c.note=pt.note||'';c.city=pt.city||''}
 function applyRes(res){if(res.data){setData(res.data);return}if(res.patch)patchLocal(res.patch)}
 function optApply(c,p){if(!c)return;c.last=dstr(TODAY);c.days=0;c.ov=0;var set=function(t,dk,tm){c.nt=t;c.nd=isoD(dk);c.ntm=tm||'';c.ov=ovOf(c.nd)};
 if(p.kind==='step'){set(p.type,p.dk,p.tm);return}
