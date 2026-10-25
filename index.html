@@ -33,6 +33,7 @@ h1{font-size:2rem;line-height:1.05;letter-spacing:-1.2px;margin:0;font-weight:70
 .big{font-size:2.588rem;font-weight:700;letter-spacing:-2.2px;line-height:.95}
 .big small{font-size:1.294rem;color:var(--mut);letter-spacing:-1px;margin-left:6px}
 .bar{height:14px;background:var(--track);border:2px solid var(--line);margin:12px 0 10px;overflow:hidden}
+.sq5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:0 0 10px}.sq5 i{height:14px;border:2px solid var(--line);background:var(--track);display:block}.sq5 i.on{background:var(--ink)}
 .bar b{display:block;height:100%;background:var(--ink);transform-origin:left;animation:grow 1s var(--out) .15s both}
 @keyframes grow{from{transform:scaleX(.02)}to{transform:none}}
 .btn,.li,.tile,.stat,.hero,.chip,.mrow,.opt,.sq,.tab{transition:transform .28s var(--spring),background .2s,box-shadow .28s var(--out)}
@@ -164,7 +165,7 @@ function today(){var calls=+M['звонков сегодня']||0,norm=+M['но�
 var first=pass('ov')[0]||pass('cool')[0]||pass('ns')[0];
 var h='<div class="hd"><div><div class="sub" style="margin:0 0 4px">'+esc(dateStr())+'</div><h1>Сегодня</h1></div><button class="sq" data-rf="1" aria-label="Обновить">'+svg('ref')+'</button></div>';
 if(first)h+='<button class="hero" data-c="'+esc(first.fio)+'"><span class="k">'+(first.ov?'<i></i>':'')+'Звонить первым</span><h2>'+esc(first.fio)+'</h2><span style="font-size:1rem;font-weight:700">'+esc(first.stage||'без стадии')+(first.who?' · '+esc(first.who):'')+'</span><span class="go"><span>'+(first.ov?'<span class="tag r">просрочено '+first.ov+' дн.</span>':'<span class="tag">'+esc(first.st)+'</span>')+'</span><span>Открыть →</span></span></button>';
-h+='<div class="box"><div class="row"><span class="lab">Звонки сегодня</span><span class="lab">норма дня</span></div><div class="big">'+cu(calls)+'<small>из '+norm+'</small></div><div class="bar"><b style="width:'+pc+'%"></b></div><div class="row" style="margin:0 0 8px"><span class="lab">Встречи за неделю</span><b>'+wk()+' из 5</b></div><p class="note">'+(held?'Проведено встреч: '+held+'. Норма снижена на '+held*5+' звонков.':'Проведённая встреча снижает норму на 5 звонков.')+'</p></div>';
+h+='<div class="box"><div class="row"><span class="lab">Звонки сегодня</span><span class="lab">норма дня</span></div><div class="big">'+cu(calls)+'<small>из '+norm+'</small></div><div class="bar"><b style="width:'+pc+'%"></b></div><div class="row" style="margin:0 0 8px"><span class="lab">Встречи за неделю</span><b>'+wk()+' из 5</b></div><div class="sq5" role="img" aria-label="Встречи за неделю: '+wk()+' из 5">'+[0,1,2,3,4].map(function(i){return '<i'+(i<wk()?' class="on"':'')+'></i>'}).join('')+'</div><p class="note">'+(held?'Проведено встреч: '+held+'. Норма снижена на '+held*5+' звонков.':'Проведённая встреча снижает норму на 5 звонков.')+'</p></div>';
 h+='<div class="two"><button class="stat al" data-g="ov"><span class="lab">Просрочено</span><b>'+cu(pass('ov').length)+'</b></button><button class="stat" data-g="cool"><span class="lab">Остывают</span><b>'+cu(pass('cool').length)+'</b></button></div>';
 h+='<div class="tiles">'+[['dig','ov','dig','Очередь','просрочки · '+pass('ov').length],['find','','find','Клиенты','поиск и карточки'],['day','','day','День','встречи и звонки'],['mail','','mail','Рассылка',MAIL.rows.length+' в списке'],['stat','','stat','Итоги','неделя и месяц'],['fun','','fun','Воронка','по стадиям']].map(function(t){return '<button class="tile" data-g="'+t[1]+'" data-to="'+t[0]+'">'+svg(t[2])+'<div><b>'+t[3]+'</b><br><span>'+t[4]+'</span></div></button>'}).join('')+'</div>';
 h+='<p class="note">Данные на '+esc(M['обновлено'])+'</p>';return h}
@@ -331,7 +332,7 @@ if(t&&a){try{history.replaceState(null,'',location.pathname)}catch(e){}}
 API=a||'';QT=t||'';
 if(!t||!a){D={error:'Откройте мини-апп кнопкой из бота.'};start();return}
 $('app').innerHTML='<div class="err"><p class="sub">Загружаю…</p></div>';
-var BUILD='20261025c';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
+var BUILD='20261025d';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
 var CK='v67cache',cached=null,shown=false;try{cached=JSON.parse(localStorage.getItem(CK)||'null')}catch(e){}
 if(cached&&cached.rows&&cached.head){cached.token=t;D=cached;shown=true;start()}
 fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:'data',args:[t]})}).then(function(r){return r.json()}).then(function(j){var d=j.res||{error:j.err||'Ошибка'};
