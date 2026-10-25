@@ -95,8 +95,7 @@ h1{font-size:2rem;line-height:1.05;letter-spacing:-1.2px;margin:0;font-weight:70
 .acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .acts .btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;font-size:0.824rem}
 .acts svg{width:24px;height:24px}
-.pulse{display:flex;gap:5px}.pulse i{width:12px;height:12px;border-radius:50%;border:2px solid var(--line);display:block}
-.pulse .w{background:var(--ink)}.pulse .h{background:var(--mark);border-radius:3px}.pulse .r{background:var(--alert);border-radius:2px;transform:rotate(45deg) scale(.85)}.pulse .n{border-color:var(--mut)}
+.pulse{display:flex;gap:10px;align-items:center}.pulse svg{width:20px;height:20px;stroke:var(--ink);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}.pulse .n svg,.pulse .n{stroke:var(--mut);color:var(--mut)}.pulse .n svg{stroke:var(--mut)}.pulse .r svg{stroke:var(--alert-t)}
 .empty{color:var(--mut);font-weight:600;padding:14px 0}
 .err{padding-top:40px}
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);opacity:0;pointer-events:none;transition:opacity .35s;z-index:40}
@@ -155,7 +154,7 @@ function navKey(t){return {day:'more',mail:'more',fun:'more'}[t]||t}
 $('nav').innerHTML='<i class="ind" id="ind"></i>'+NAV.map(function(t){return '<button class="tab'+(t[0]==='add'?' add':'')+'" id="t-'+t[0]+'" data-t="'+t[0]+'">'+svg(t[0])+'<span>'+t[1]+'</span></button>'}).join('');
 function pass(f){return P.filter(function(c){if(c.stage==='Отказ/Стоп')return false;return f==='ov'?c.ov>0:f==='cool'?c.st==='остывает':f==='sil'?c.st==='давно молчит':f==='ns'?c.st==='нет шага':f==='mail'?c.st==='ждёт рассылки':true})}
 function why(c){var r=[];if(c.ov)r.push((c.nt||'Шаг')+' · план был '+(c.nd||''));else if(c.st==='остывает')r.push('остывает, без шага');else if(c.st==='давно молчит')r.push('давно молчит');else if(c.st==='нет шага')r.push('нет следующего шага');else if(c.st==='ждёт рассылки')r.push('ждёт рассылки');if(c.days!=null&&!c.ov)r.push(c.days+' дн. без контакта');return r.join(' · ')}
-var PL={w:'контакт',h:'встреча',r:'отказ',n:'другое'};function pulse(p){return p?'<div class="pulse" role="img" aria-label="Последние контакты: '+p.split('').map(function(x){return PL[x]||'другое'}).join(', ')+'" title="○ контакт · □ встреча · ◇ отказ">'+p.split('').map(function(x){return '<i class="'+x+'"></i>'}).join('')+'</div>':''}
+var PL={w:'звонок',h:'встреча',r:'отказ',n:'без результата'};var PI={w:'<path d="M6 3h3l2 5-2.5 1.5a11 11 0 0 0 5 5L15 12l5 2v3a2 2 0 0 1-2 2A15 15 0 0 1 4 5a2 2 0 0 1 2-2z"/>',h:'<circle cx="9" cy="8" r="3"/><path d="M3 20v-1a5 5 0 0 1 10 0v1"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14a4.5 4.5 0 0 1 5 4.5V20"/>',r:'<path d="M6 6l12 12M18 6L6 18"/>',n:'<path d="M6 12h12"/>'};function pulse(p){return p?'<div class="pulse" role="img" aria-label="Последние контакты (от старых к новым): '+p.split('').map(function(x){return PL[x]||PL.n}).join(', ')+'">'+p.split('').map(function(x){x=PI[x]?x:'n';return '<span class="'+x+'" title="'+PL[x]+'"><svg viewBox="0 0 24 24" aria-hidden="true">'+PI[x]+'</svg></span>'}).join('')+'</div>':''}
 function item(c){return '<button class="li" data-c="'+esc(c.fio)+'"><div class="t"><b>'+esc(c.fio)+'</b><span class="d'+(c.ov?' al':'')+'">'+(c.ov?c.ov+' дн.':(c.days!=null?c.days+' дн.':'—'))+'</span></div><div class="tags"><span class="tag">'+esc(c.stage||'без стадии')+'</span>'+(c.ov?'<span class="tag r">просрочено</span>':'')+'</div><div class="w">'+esc(why(c))+'</div>'+pulse(c.pulse)+'</button>'}
 function list(a,n){return a.length?a.slice(0,n||200).map(item).join(''):'<div class="empty">Пусто</div>'}
 function dateStr(){var s=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});return s.charAt(0).toUpperCase()+s.slice(1)}
@@ -332,7 +331,7 @@ if(t&&a){try{history.replaceState(null,'',location.pathname)}catch(e){}}
 API=a||'';QT=t||'';
 if(!t||!a){D={error:'Откройте мини-апп кнопкой из бота.'};start();return}
 $('app').innerHTML='<div class="err"><p class="sub">Загружаю…</p></div>';
-var BUILD='20261025b';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
+var BUILD='20261025c';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
 var CK='v67cache',cached=null,shown=false;try{cached=JSON.parse(localStorage.getItem(CK)||'null')}catch(e){}
 if(cached&&cached.rows&&cached.head){cached.token=t;D=cached;shown=true;start()}
 fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:'data',args:[t]})}).then(function(r){return r.json()}).then(function(j){var d=j.res||{error:j.err||'Ошибка'};
