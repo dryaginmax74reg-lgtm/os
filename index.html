@@ -426,7 +426,7 @@ function initWheels(){document.querySelectorAll('.wheel').forEach(function(w){va
 function cur(c){return Math.max(0,Math.min(c.children.length-1,Math.round(c.scrollTop/32)))}
 function mark(){[hc,mc].forEach(function(c){var k=cur(c);[].forEach.call(c.children,function(x,i){x.classList.toggle('on',i===k)})})}
 function commit(){var h=cur(hc)+7,m=cur(mc)*5;W[f]=('0'+h).slice(-2)+':'+('0'+m).slice(-2);wUpd(f)}
-hc.scrollTop=Math.max(0,hh-7)*32;mc.scrollTop=mm*32;mark();setTimeout(function(){ready=true},400);
+hc.scrollTop=Math.max(0,hh-7)*32;mc.scrollTop=mm*32;mark();setTimeout(function(){ready=true},150);
 [hc,mc].forEach(function(c){c.onscroll=function(){mark();if(!ready)return;clearTimeout(tm);tm=setTimeout(commit,280)};c.onclick=function(e){var it=e.target.closest('i');if(it){hp('light');c.scrollTo({top:[].indexOf.call(c.children,it)*32,behavior:'smooth'})}}})})}
 var OUTS={call:[['ph','🔥 Тёплый'],['pc','🧊 Холодный'],['m','Встреча назначена'],['c','Назначен звонок'],['u','📵 Неудобно'],['r','Отказ']],meet:[['h','Проведена'],['p','Прогрев'],['o','Открыл счёт'],['r','Отказ']]};
 function needNext(){if(W.kind==='call')return(W.out==='ph'||W.out==='pc'||W.out==='p')&&HOT.indexOf(W.stage)>=0;if(W.kind==='meet')return W.out==='h'||W.out==='p'||W.out==='ph'||W.out==='pc';return false}
@@ -592,7 +592,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261027f';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261027g';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
