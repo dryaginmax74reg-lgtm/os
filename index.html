@@ -153,7 +153,7 @@ function setData(d){D=d;D.token=TOKEN;var H=d.head,C={};H.forEach(function(h,i){
 P=d.rows.map(function(r){return{fio:r[C['ФИО']],stage:r[C['Стадия']]||'',city:r[C['Город']],last:r[C['Посл. контакт']],days:r[C['Дней']]===''?null:+r[C['Дней']],nt:r[C['Шаг (тип)']],nd:r[C['Шаг (дата)']],ntm:r[C['Шаг (время)']],ov:+r[C['Просрочен, дн.']]||0,st:r[C['Статус']],pulse:r[C['Пульс']]||'',n30:r[C['Контактов за 30 дн.']],who:r[C['Кто такой']],note:r[C['Заметка']],id:r[C['ID']]||''}}).filter(function(c){return !/^Тестов|дубль/i.test(c.fio||'')});
 ACT=(d.act||[]).map(function(r){var x=pd(r[0]);if(x&&x.getFullYear()<100)x.setFullYear(x.getFullYear()+2000);return{d:x,ds:r[0],fio:r[1],t:r[2],o:r[3],c:r[4]}}).filter(function(r){return r.d});
 MAIL=d.mail||{rows:[]};MQ=d.mq||{};M=d.meta}
-setData(D);window.__fresh=function(d){if(sheetOn||W)return false;try{setData(d);draw(true);return true}catch(e){return false}};
+setData(D);window.__fresh=function(d){if(sheetOn||W){window.__pend=d;if(!window.__pt)window.__pt=setInterval(function(){if(window.__pend&&window.__fresh(window.__pend)){window.__pend=null;clearInterval(window.__pt);window.__pt=0}},1500);return false}try{setData(d);window.__ferr=0;draw(true);return true}catch(e){return false}};
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
 function dstr(d){return ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear()}
 function iso(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
@@ -229,15 +229,16 @@ var a=R.filter(function(r){return !r.sent&&(mcity==='Все'||r.city===mcity)});
 var rows=cities.map(function(c){var t=R.filter(function(r){return r.city===c}),s2=t.filter(function(r){return r.sent}).length;return '<div class="mrow" style="cursor:default"><span>'+c+'</span><b>'+s2+' / '+t.length+'</b></div>'}).join('');
 return '<div><h1>Рассылка</h1><p class="sub">Индивидуальный прогрев, две недели после отправки</p></div><button class="btn main" data-mcn="1">Новая рассылка с PDF</button>'+mqBox()+'<div class="box"><div class="row"><span class="lab">Отправлено</span><span class="lab">'+pc+'%</span></div><div class="big">'+cu(sent)+'<small>из '+tot+'</small></div><div class="bar"><b style="width:'+pc+'%"></b></div><p class="note">Отправку делает мейлер на Mac, результаты пишутся в таблицу сами.</p></div><div class="box" style="padding:6px 16px">'+rows+'</div><div class="chips">'+['Все'].concat(cities).map(function(c){return '<button class="chip" data-mc="'+c+'" aria-pressed="'+(mcity===c)+'">'+c+'</button>'}).join('')+'</div><div class="lab" style="font-weight:800">Ждут отправки · '+a.length+'</div>'+(a.length?a.slice(0,60).map(function(r){var ix=MR.push(r)-1;return '<div class="li" style="gap:8px"><button class="mrow" style="padding:0;border:0" data-c="'+esc(r.fio)+'"><span style="font-size:1.059rem;font-weight:800;letter-spacing:-.4px">'+esc(r.fio)+'</span><span style="font-size:0.765rem;font-weight:800">'+esc(r.city)+'</span></button><div class="tags"><span class="tag">'+esc(r.stage)+'</span>'+(r.mat?'<span class="tag y">материалов: '+esc(r.mat)+'</span>':'')+(r.skip?'<span class="tag">отложен</span>':'')+(r.tg?'':'<span class="tag y">нет Telegram</span>')+'</div>'+(r.note?'<div class="w">'+esc(r.note)+'</div>':'')+'<div class="two" style="gap:8px"><button class="btn main" style="padding:10px" data-mi="'+ix+'" data-mk="sent">Отправлено</button><button class="btn" style="padding:10px" data-mi="'+ix+'" data-mk="skip">Отложить</button></div></div>'}).join('')+(a.length>60?'<p class="note">Показаны первые 60.</p>':''):'<div class="empty">Пусто</div>')}
 var METR=[['calls','Звонков',function(r){return r.t==='Звонок'}],['set','Встреч назначено',function(r){return r.o==='Встреча назначена'}],['meet','Встреч проведено',function(r){return r.t==='Встреча'}],['ref','Отказов',function(r){return r.o==='Отказ'}]];
-function since(p){var d=new Date(TODAY);if(p==='Неделя'){d.setDate(d.getDate()-((d.getDay()+6)%7))}else if(p==='Месяц'){d.setDate(1)}else{d.setDate(d.getDate()-90)}return d}
+function since(p){var d=new Date(TODAY);if(p==='Сегодня'){}else if(p==='Неделя'){d.setDate(d.getDate()-((d.getDay()+6)%7))}else if(p==='Месяц'){d.setDate(1)}else{d.setDate(d.getDate()-90)}return d}
 function cntm(m,p){var f=since(p);return ACT.filter(function(r){return r.d>=f&&m[2](r)}).length}
-function stat(){var PER=['Неделя','Месяц','90 дней'];
+function stamp(){var t=D&&D.__ts;var hm=t?new Date(t).toTimeString().slice(0,5):'—';return '<button class="li" data-rl="1" style="padding:8px 14px"><div class="t"><span class="d">Данные от '+hm+(window.__ferr?' · не обновились, нажмите':' · обновить')+'</span></div></button>'}
+function stat(){var PER=['Сегодня','Неделя','Месяц','90 дней'];
 if(dm){var m=METR.filter(function(x){return x[0]===dm})[0],f=since(per),a=ACT.filter(function(r){return r.d>=f&&m[2](r)}).sort(function(x,y){return y.d-x.d});
 return '<div><h1 style="font-size:2rem;letter-spacing:-1.5px">'+m[1]+'</h1><p class="sub">'+per+' · записей: '+a.length+'</p></div>'+(a.length?a.slice(0,150).map(function(r){var known=P.filter(function(c){return c.fio.toLowerCase()===String(r.fio).toLowerCase()})[0];return '<button class="li" '+(known?'data-c="'+esc(known.fio)+'"':'')+'><div class="t"><b>'+esc(r.fio)+'</b><span class="d">'+esc(r.ds)+'</span></div><div class="tags"><span class="tag">'+esc(r.t)+'</span>'+(r.o?'<span class="tag y">'+esc(r.o)+'</span>':'')+'</div>'+(r.c?'<div class="w">'+esc(String(r.c).slice(0,220))+'</div>':'')+'</button>'}).join(''):'<div class="empty">Нет записей</div>')}
 var C={};METR.forEach(function(m){C[m[0]]=cntm(m,per)});
 var st=function(n){return P.filter(function(c){return c.stage===n}).length};
 var mt=[['Звонки',C.calls],['Встречи проведены',C.meet],['Отказы',C.ref]];
-return '<div><h1>Итоги</h1><p class="sub">Из журнала активности. Нажмите на показатель, чтобы увидеть записи</p></div><div class="chips">'+PER.map(function(p){return '<button class="chip" data-p="'+p+'" aria-pressed="'+(per===p)+'">'+p+'</button>'}).join('')+'</div>'
+return '<div><h1>Итоги</h1><p class="sub">Из журнала активности. Нажмите на показатель, чтобы увидеть записи</p></div>'+stamp()+'<div class="chips">'+PER.map(function(p){return '<button class="chip" data-p="'+p+'" aria-pressed="'+(per===p)+'">'+p+'</button>'}).join('')+'</div>'
 +'<div class="box" style="padding:6px 16px">'+METR.map(function(m){return '<button class="mrow" data-m="'+m[0]+'"><span>'+m[1]+'</span><b'+(m[0]==='ref'?' style="color:var(--alert-t)"':'')+'>'+cu(C[m[0]])+'</b></button>'}).join('')+'</div>'
 +'<div class="box"><div class="lab" style="margin-bottom:10px">От звонка до встречи</div>'+mt.map(function(r,i){var w=Math.max(r[1]/Math.max(C.calls,1)*100,2);return '<div style="margin-bottom:10px"><div class="row"><span style="font-size:0.824rem;font-weight:600">'+r[0]+'</span><b>'+r[1]+(i&&C.calls?' <span class="lab">('+(r[1]/C.calls*100).toFixed(1).replace('.',',')+'%)</span>':'')+'</b></div><div class="bar" style="margin:4px 0 0"><b style="width:'+w+'%"></b></div></div>'}).join('')+'</div>'
 +'<div class="box"><div class="lab" style="margin-bottom:8px">Сейчас в базе</div><div class="mrow" style="cursor:default"><span>В переговорах</span><b>'+st('В переговорах')+'</b></div><div class="mrow" style="cursor:default"><span>Открыли счёт</span><b>'+st('Открыл счёт')+'</b></div><div class="mrow" style="cursor:default"><span>Пополнили</span><b>'+st('Пополнил')+'</b></div></div>'}
@@ -380,7 +381,7 @@ NAV.forEach(function(t){$('t-'+t[0]).setAttribute('aria-current',t[0]===navKey(t
 runCount();
 if(tab==='find'){var i=$('q');function run(){q=i.value;var kk=q;draw(true);var n=$('q');n.focus();n.setSelectionRange(kk.length,kk.length)}
 i.oninput=function(){clearTimeout(tm);tm=setTimeout(run,800)};i.onkeydown=function(e){if(e.key==='Enter'){clearTimeout(tm);run();i.blur()}};$('gq').onclick=function(){clearTimeout(tm);run()}}}
-function draw(instant,dir){var d=dir||'f';$('app').classList.toggle('still',!instant?true:true);document.documentElement.setAttribute('data-dir',d);var f=function(){render()};
+window.__draw=function(){draw(true)};function draw(instant,dir){var d=dir||'f';$('app').classList.toggle('still',!instant?true:true);document.documentElement.setAttribute('data-dir',d);var f=function(){render()};
 if(!instant&&document.startViewTransition&&prevTab!==undefined){try{document.startViewTransition(f)}catch(e){f()}}else f();prevTab=tab}
 $('nav').onclick=function(e){var b=e.target.closest('button');if(b){if(b.dataset.t==='add'){qOpen();return}go(b.dataset.t)}};
 $('cin').onclick=function(e){var qs=e.target.closest('[data-qs]');if(qs){hp('medium');var nm0=cardName;if(stepMove(nm0,+qs.dataset.qs,true))card(nm0);return}var hb=e.target.closest('[data-hist]');if(hb){hp('light');histOpen=!histOpen;var y0=$('card').scrollTop;card(cardName);$('card').scrollTop=y0;return}var b=e.target.closest('[data-w]');if(b){hp('medium');wiz(b.dataset.w)}};
@@ -388,8 +389,8 @@ function sh(e){var t=e.target.closest('[data-nc],[data-nr],[data-ns],[data-wo],[
 if(d.wo){W.out=d.wo;if(d.wo!=='m'&&d.wo!=='c'){W.dk=null;W.tm=null}}else if(d.wd!==undefined){var a=d.wd.split('|');W[a[0]]=a[1]||null}else if(d.wt){var b=d.wt.split('|');W[b[0]]=b[1]}else if(d.wtype){W.type=d.wtype}
 wrender(false)}
 $('sin').onclick=sh;
-$('app').onclick=function(e){var t=e.target.closest('[data-mi],[data-c],[data-g],[data-f],[data-s],[data-mc],[data-p],[data-m],[data-rf],[data-to],[data-undo],[data-nw],[data-mcn],[data-mqc],[data-rq],[data-ct],[data-wk],[data-dp]');if(!t)return;var d=t.dataset;if(d.wk){hp('medium');stepMove(d.wk,7,false);draw(true);return}if(d.dp){hp('light');dper=d.dp;if(tab==='day')draw(true);else go('day',undefined,true);return}if(d.ct){hp('light');callsOpen=!callsOpen;draw(true);return}if(d.mi!==undefined){mailAct(+d.mi,d.mk);return}if(d.undo){undoLast();return}if(d.nw){nwOpen();return}if(d.mcn){mcOpen();return}if(d.mqc){mqCancel();return}if(d.rq){refreshQ();return}hp('light');
-if(d.c)card(d.c);else if(d.rf)refresh();else if(d.to){go(d.to,d.g||undefined,tab==='more'||tab==='today'&&d.to!=='dig'&&d.to!=='find'&&d.to!=='stat')}else if(d.g)go('dig',d.g,true);else if(d.f){flt=d.f;draw(true)}else if(d.s){stack.push(snap());fstage=d.s;draw(false,'l');window.scrollTo(0,0);tgBack()}else if(d.mc){mcity=d.mc;draw(true)}else if(d.p){per=d.p;draw(true)}else if(d.m){stack.push(snap());dm=d.m;draw(false,'l');window.scrollTo(0,0);tgBack()}};
+$('app').onclick=function(e){var t=e.target.closest('[data-mi],[data-c],[data-g],[data-f],[data-s],[data-mc],[data-p],[data-m],[data-rf],[data-to],[data-undo],[data-nw],[data-mcn],[data-mqc],[data-rq],[data-ct],[data-rl],[data-wk],[data-dp]');if(!t)return;var d=t.dataset;if(d.wk){hp('medium');stepMove(d.wk,7,false);draw(true);return}if(d.dp){hp('light');dper=d.dp;if(tab==='day')draw(true);else go('day',undefined,true);return}if(d.ct){hp('light');callsOpen=!callsOpen;draw(true);return}if(d.mi!==undefined){mailAct(+d.mi,d.mk);return}if(d.undo){undoLast();return}if(d.nw){nwOpen();return}if(d.mcn){mcOpen();return}if(d.mqc){mqCancel();return}if(d.rq){refreshQ();return}hp('light');
+if(d.c)card(d.c);else if(d.rl){window.__load();toast('Обновляю…')}else if(d.rf)refresh();else if(d.to){go(d.to,d.g||undefined,tab==='more'||tab==='today'&&d.to!=='dig'&&d.to!=='find'&&d.to!=='stat')}else if(d.g)go('dig',d.g,true);else if(d.f){flt=d.f;draw(true)}else if(d.s){stack.push(snap());fstage=d.s;draw(false,'l');window.scrollTo(0,0);tgBack()}else if(d.mc){mcity=d.mc;draw(true)}else if(d.p){per=d.p;draw(true)}else if(d.m){stack.push(snap());dm=d.m;draw(false,'l');window.scrollTo(0,0);tgBack()}};
 qReapply();qFlush();if(!window.__qh){window.__qh=1;document.addEventListener('visibilitychange',function(){if(!document.hidden)qFlush()});window.addEventListener('online',qFlush);setInterval(qFlush,20000)}
 
 if(!window.__gs){window.__gs=1;
@@ -397,15 +398,16 @@ if(!window.__gs){window.__gs=1;
 document.addEventListener('touchmove',function(e){if(e.touches.length>1)e.preventDefault()},{passive:false});
 if(window.visualViewport){var vv=visualViewport,kb=function(){var h=Math.max(0,Math.round(innerHeight-vv.height-vv.offsetTop)),sh=$('sheet');sh.style.bottom=h+'px';sh.style.maxHeight=Math.round(vv.height*.9)+'px'};vv.addEventListener('resize',kb);vv.addEventListener('scroll',kb)}
 document.addEventListener('focusin',function(e){var t=e.target;if(t&&/INPUT|TEXTAREA/.test(t.tagName)&&$('sheet').contains(t))setTimeout(function(){try{t.scrollIntoView({block:'center',behavior:'smooth'})}catch(x){}},320)});
-var sx=0,sy=0,dx=0,mode=null,t0=0,lastBack=0;
+var sdx=0,sx=0,sy=0,dx=0,mode=null,t0=0,lastBack=0;
 var cardEl=$('card'),sheetEl=$('sheet');
 document.addEventListener('touchstart',function(e){mode=null;if(e.touches.length!==1)return;var t=e.touches[0];sx=t.clientX;sy=t.clientY;dx=0;t0=Date.now();
 if(sheetOn){var r=sheetEl.getBoundingClientRect();if(sheetEl.contains(e.target)&&sy<=r.top+44)mode='sheet';return}
-if(sx<=24&&canBack())mode='edge'},{passive:true});
+if(cardName){mode='edge';return}if(sx<=24&&canBack()){mode='edge';return}if((tab==='dig'||tab==='stat')&&!dm&&!e.target.closest('.chips')&&!/INPUT|TEXTAREA/.test(e.target.tagName)){mode='pg';sdx=0}},{passive:true});
 document.addEventListener('touchmove',function(e){if(!mode)return;var t=e.touches[0],mx=t.clientX-sx,my=t.clientY-sy;
+if(mode==='pg'){if(Math.abs(my)>Math.abs(mx)+8&&Math.abs(my)>14){mode=null;return}sdx=mx;return}
 if(mode==='edge'){if(dx===0&&Math.abs(my)>Math.abs(mx)+6){mode=null;return}dx=Math.max(0,mx);if(cardName&&!sheetOn){cardEl.style.transition='none';cardEl.style.transform='translateX('+dx+'px)'}}
 else{dx=Math.max(0,my);sheetEl.style.transition='none';sheetEl.style.transform='translateY('+dx+'px)'}},{passive:true});
-function fin(){if(!mode)return;var m=mode,v=dx/Math.max(1,Date.now()-t0);mode=null;var go2=dx>90||(dx>36&&v>.45);
+function fin(){if(mode==='pg'){mode=null;var v2=Math.abs(sdx)/Math.max(1,Date.now()-t0);if(Math.abs(sdx)>70||(Math.abs(sdx)>40&&v2>.5)){var cs=[].slice.call(document.querySelectorAll(tab==='dig'?'[data-f]':'[data-p]')),ix=-1;cs.forEach(function(c,i){if(c.getAttribute('aria-pressed')==='true')ix=i});var nx2=ix+(sdx>0?1:-1);if(ix>-1&&cs[nx2]){hp('light');cs[nx2].click();window.scrollTo(0,0)}}sdx=0;return}if(!mode)return;var m=mode,v=dx/Math.max(1,Date.now()-t0);mode=null;var go2=dx>90||(dx>36&&v>.45);
 if(m==='sheet'){sheetEl.style.transition='';sheetEl.style.transform='';if(go2)closeSheet();return}
 cardEl.style.transition='';cardEl.style.transform='';if(go2){lastBack=Date.now();back()}}
 document.addEventListener('touchend',fin,{passive:true});document.addEventListener('touchcancel',fin,{passive:true});
@@ -420,7 +422,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261026f';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
+var BUILD='20261026g';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
@@ -437,7 +439,8 @@ function load(tk){QT=tk;var cached=null,shown=false;try{cached=JSON.parse(localS
 if(cached&&cached.rows&&cached.head){cached.token=tk;D=cached;shown=true;start()}else $('app').innerHTML='<div class="err"><p class="sub">Загружаю…</p></div>';
 call('data',[tk]).then(function(j){var d=j.res||{error:j.err||'Ошибка'};
 if(d.error&&bad(d.error)){LS('v67t',null);login();return}
-if(!d.error){try{var c=JSON.parse(JSON.stringify(d));delete c.token;localStorage.setItem(CK,JSON.stringify(c))}catch(e){}}
-if(shown){if(!d.error&&window.__fresh)window.__fresh(d)}else{D=d;start()}}).catch(function(){if(!shown){D={error:'Нет связи с сервером'};start()}})}
+if(!d.error){d.__ts=Date.now();try{var c=JSON.parse(JSON.stringify(d));delete c.token;localStorage.setItem(CK,JSON.stringify(c))}catch(e){}}
+if(shown){if(!d.error&&window.__fresh)window.__fresh(d)}else{D=d;start()}}).catch(function(){window.__ferr=1;if(!shown){D={error:'Нет связи с сервером'};start()}else if(window.__draw)window.__draw()})}
+window.__load=function(){load(QT)};
 if(t)load(t);else login()})();
 </script></body></html>
