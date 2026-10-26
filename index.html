@@ -144,9 +144,9 @@ textarea{min-height:76px;resize:none}
 .bm{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:140px 96px;gap:10px}
 .bm>button{border:2px solid var(--line);padding:12px 14px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;color:#0B0B0B;min-width:0}
 .bm .lab{font-size:0.688rem;font-weight:800;letter-spacing:.9px;text-transform:uppercase}
-.bm-c{grid-column:span 4;background:#0B0B0B;color:#F1EFE7!important;border-radius:0 0 0 34px!important}
-.bm-c .lab{color:#C9CCD2}.bm-c .bn{display:flex;align-items:baseline;gap:8px}.bm-c .bn b{font-size:3.7rem;line-height:.9;letter-spacing:-3px;color:#FFE62E;font-weight:800}.bm-c small{font-size:1.25rem;font-weight:700;color:#C9CCD2}
-.bm-c .bb{display:block;height:10px;background:#32373D}.bm-c .bb i{display:block;height:100%}.bm-c .bs{display:block;margin-top:5px;font-size:0.75rem;font-weight:700}
+.bm-c{grid-column:span 4;background:#fff;color:#0B0B0B!important;border-radius:0 0 0 34px!important}
+.bm-c .lab{color:#5E6068}.bm-c .bn{display:flex;align-items:baseline;gap:8px}.bm-c .bn b{font-size:3.7rem;line-height:.9;letter-spacing:-3px;color:#0B0B0B;font-weight:800}.bm-c small{font-size:1.25rem;font-weight:700;color:#5E6068}
+.bm-c .bb{display:block;height:10px;background:#E4E1D6;border:2px solid #0B0B0B}.bm-c .bb i{display:block;height:100%}.bm-c .bs{display:block;margin-top:5px;font-size:0.75rem;font-weight:700}
 .bm-o{grid-column:span 2;grid-row:span 2;background:#FF4A25;box-shadow:5px 5px 0 var(--line)}
 .bm-o b{display:block;font-size:4.2rem;line-height:.9;letter-spacing:-3px;font-weight:800}.bm-o em{display:block;margin-top:6px;font-size:0.8rem;font-weight:700;font-style:normal;line-height:1.25}.bm-o .go{font-size:0.8rem;font-weight:800}
 .bm-k{grid-column:span 2;background:#FFB020}.bm-k b{font-size:2.75rem;line-height:.9;letter-spacing:-2px;font-weight:800}
@@ -237,7 +237,7 @@ if(first)h+='<button class="hero" data-c="'+esc(first.fio)+'"><span class="k">'+
 var nw0=nextWork(),cnt0=function(dt){return P.filter(function(c){return c.nd===dstr(dt)&&c.nt}).length},wkn=0;for(var i0=0;i0<7;i0++){var dd0=new Date(TODAY);dd0.setDate(dd0.getDate()+i0);wkn+=cnt0(dd0)}
 var ovl=pass('ov'),oldest=ovl.reduce(function(m,c){return Math.max(m,c.ov||0)},0),w5=wk(),ct0=cnt0(TODAY),dots='';for(var di=0;di<Math.min(ct0,8);di++)dots+='<i></i>';
 var ok=calls>=norm,bc=pc>=100?'var(--good)':pc>=50?'#F5A524':'var(--alert)';
-h+='<div class="bm"><button class="bm-c" data-ct="1" aria-expanded="'+callsOpen+'"><span class="lab">Звонки сегодня'+(calls?' · '+(callsOpen?'свернуть':'список'):'')+'</span><span class="bn"><b>'+cu(calls)+'</b><small>из '+norm+'</small></span><span><span class="bb"><i style="width:'+pc+'%;background:'+bc+'"></i></span><span class="bs" style="color:'+(ok?'#3FD08F':'#C9CCD2')+'">'+(ok?'норма выполнена · +'+(calls-norm):'осталось '+(norm-calls)+' до нормы')+'</span></span></button>'
+h+='<div class="bm"><button class="bm-c" data-ct="1" aria-expanded="'+callsOpen+'"><span class="lab">Звонки сегодня'+(calls?' · '+(callsOpen?'свернуть':'список'):'')+'</span><span class="bn"><b>'+cu(calls)+'</b><small>из '+norm+'</small></span><span><span class="bb"><i style="width:'+pc+'%;background:'+bc+'"></i></span><span class="bs" style="color:'+(ok?'#0B6B47':'#5E6068')+'">'+(ok?'норма выполнена · +'+(calls-norm):'осталось '+(norm-calls)+' до нормы')+'</span></span></button>'
 +'<button class="bm-o" data-to="dig" data-g="ov"><span class="lab">Просрочено</span><span><b>'+cu(ovl.length)+'</b><em>'+(oldest?'самая старая — '+oldest+' дн.':'всё в срок')+'</em></span><span class="go">Разбирать →</span></button>'
 +'<button class="bm-k" data-g="cool"><span class="lab">Остывают</span><b>'+cu(pass('cool').length)+'</b></button>'
 +'<button class="bm-m" data-to="day"><span class="mh"><span class="lab">Встречи</span><b>'+w5+'/5</b></span><span class="sq5m">'+[0,1,2,3,4].map(function(i){return '<i'+(i<w5?' class="on"':'')+'></i>'}).join('')+'</span></button></div>';
@@ -472,7 +472,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261026j';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
+var BUILD='20261026k';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
