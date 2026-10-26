@@ -175,13 +175,17 @@ function list(a,n){return a.length?a.slice(0,n||200).map(item).join(''):'<div cl
 function dateStr(){var s=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});return s.charAt(0).toUpperCase()+s.slice(1)}
 function cu(n){return '<span data-n="'+n+'">'+n+'</span>'}
 function wk(){var f=since('Неделя');return ACT.filter(function(r){return r.d>=f&&r.t==='Встреча'}).length}
-function today(){var calls=+M['звонков сегодня']||0,norm=+M['норма звонков']||20,held=+M['проведено встреч сегодня']||0,pc=Math.min(100,Math.round(calls/Math.max(1,norm)*100));
+var callsOpen=false;
+function callsList(){var ds=dstr(TODAY),seen={},out=[];ACT.forEach(function(r){if(r.ds!==ds||r.t!=='Звонок')return;var k=[r.fio,r.o,String(r.c||'').trim().toLowerCase()].join('|');if(seen[k])return;seen[k]=1;out.push(r)});return out}
+function callsBox(cl){return cl.length?'<div style="margin:12px 0 14px">'+cl.map(function(r){return '<button class="li" data-c="'+esc(r.fio)+'" style="margin-bottom:6px"><div class="t"><b>'+esc(r.fio)+'</b><span class="d">'+esc(r.o||'')+'</span></div>'+(r.c?'<div class="w">'+esc(r.c)+'</div>':'')+'</button>'}).join('')+'</div>':''}
+function today(){var cl=callsList(),calls=cl.length,norm=+M['норма звонков']||20,held=+M['проведено встреч сегодня']||0,pc=Math.min(100,Math.round(calls/Math.max(1,norm)*100));
 var first=pass('ov')[0]||pass('cool')[0]||pass('ns')[0];
 var h='<div class="hd"><div><div class="sub" style="margin:0 0 4px">'+esc(dateStr())+'</div><h1>Сегодня</h1></div><button class="sq" data-rf="1" aria-label="Обновить">'+svg('ref')+'</button></div>';
 if(first)h+='<button class="hero" data-c="'+esc(first.fio)+'"><span class="k">'+(first.ov?'<i></i>':'')+'Звонить первым</span><h2>'+esc(first.fio)+'</h2><span style="font-size:1rem;font-weight:700">'+esc(first.stage||'без стадии')+(first.who?' · '+esc(first.who):'')+'</span><span class="go"><span>'+(first.ov?'<span class="tag r">просрочено '+first.ov+' дн.</span>':'<span class="tag">'+esc(first.st)+'</span>')+'</span><span>Открыть →</span></span></button>';
-h+='<div class="box"><div class="row"><span class="lab">Звонки сегодня</span><span class="lab">норма дня</span></div><div class="big">'+cu(calls)+'<small>из '+norm+'</small></div><div class="bar"><b style="width:'+pc+'%"></b></div><div class="row" style="margin:0 0 8px"><span class="lab">Встречи за неделю</span><b>'+wk()+' из 5</b></div><div class="sq5" role="img" aria-label="Встречи за неделю: '+wk()+' из 5">'+[0,1,2,3,4].map(function(i){return '<i'+(i<wk()?' class="on"':'')+'></i>'}).join('')+'</div><p class="note">'+(held?'Проведено встреч: '+held+'. Норма снижена на '+held*5+' звонков.':'Проведённая встреча снижает норму на 5 звонков.')+'</p></div>';
+h+='<div class="box"><button data-ct="1" aria-expanded="'+callsOpen+'" style="all:unset;display:block;width:100%;cursor:pointer;box-sizing:border-box;-webkit-tap-highlight-color:transparent"><div class="row"><span class="lab">Звонки сегодня</span><span class="lab">норма дня'+(calls?' · '+(callsOpen?'свернуть':'список'):'')+'</span></div><div class="big">'+cu(calls)+'<small>из '+norm+'</small></div><div class="bar"><b style="width:'+pc+'%"></b></div></button>'+(callsOpen?callsBox(cl):'')+'<div class="row" style="margin:0 0 8px"><span class="lab">Встречи за неделю</span><b>'+wk()+' из 5</b></div><div class="sq5" role="img" aria-label="Встречи за неделю: '+wk()+' из 5">'+[0,1,2,3,4].map(function(i){return '<i'+(i<wk()?' class="on"':'')+'></i>'}).join('')+'</div><p class="note">'+(held?'Проведено встреч: '+held+'. Норма снижена на '+held*5+' звонков.':'Проведённая встреча снижает норму на 5 звонков.')+'</p></div>';
 h+='<div class="two"><button class="stat al" data-g="ov"><span class="lab">Просрочено</span><b>'+cu(pass('ov').length)+'</b></button><button class="stat" data-g="cool"><span class="lab">Остывают</span><b>'+cu(pass('cool').length)+'</b></button></div>';
 h+='<div class="tiles">'+[['dig','ov','dig','Очередь','просрочки · '+pass('ov').length],['find','','find','Клиенты','поиск и карточки'],['day','','day','День','встречи и звонки'],['mail','','mail','Рассылка',MAIL.rows.length+' в списке'],['stat','','stat','Итоги','неделя и месяц'],['fun','','fun','Воронка','по стадиям']].map(function(t){return '<button class="tile" data-g="'+t[1]+'" data-to="'+t[0]+'">'+svg(t[2])+'<div><b>'+t[3]+'</b><br><span>'+t[4]+'</span></div></button>'}).join('')+'</div>';
+var qn=qGet().length;if(qn)h+='<p class="note" style="color:var(--alert);font-weight:800">Не отправлено записей: '+qn+'. Отправлю сам, как только будет связь.</p>';
 h+='<p class="note">Данные на '+esc(M['обновлено'])+'</p>';return h}
 function more(){return '<div><h1>Ещё</h1><p class="sub">Остальные разделы</p></div><div class="tiles" style="grid-template-columns:1fr 1fr">'+[['find','Клиенты','поиск и карточки'],['day','День','встречи и звонки по шагам'],['mail','Рассылка',MAIL.rows.length+' в списке'],['fun','Воронка','клиенты по стадиям']].map(function(t){return '<button class="tile" data-to="'+t[0]+'">'+svg(t[0])+'<div><b>'+t[1]+'</b><br><span>'+t[2]+'</span></div></button>'}).join('')+'<button class="tile" data-undo="1">'+svg('back')+'<div><b>Отменить</b><br><span>последнюю запись</span></div></button><button class="tile" data-rf="1">'+svg('ref')+'<div><b>Обновить</b><br><span>пересчитать данные</span></div></button></div>'}
 function dig(){var tabs=[['ov','Просрочено'],['cool','Остывают'],['sil','Молчат 30+'],['ns','Нет шага'],['new','Новые'],['mail','Рассылка'],['ref','Отказы']];
@@ -268,8 +272,25 @@ if(p.kind==='call'){if(p.out==='m')set('Встреча',p.dk,p.tm);else if(p.out
 else if(p.ndk)set('Звонок',p.ndk,p.ntm)}
 function optAct(p){if(p.kind==='step')return null;var lab=(OUTS[p.kind].filter(function(o){return o[0]===p.out})[0]||['',''])[1];var e={d:new Date(TODAY),ds:dstr(TODAY),fio:p.fio,t:p.kind==='call'?'Звонок':'Встреча',o:lab,c:p.cm||''};ACT.unshift(e);return e}
 function wsubmit(){if(!valid())return;var p=JSON.parse(JSON.stringify(W));var nm=cardName;var c=P.filter(function(x){return x.fio===p.fio})[0];var old=c?JSON.stringify(c):null;var ae=optAct(p);optApply(c,p);hn('success');closeSheet();draw(true);if(nm)card(nm);toast('Записываю…');
-var back=function(m){if(c&&old){var o=JSON.parse(old);for(var k in o)c[k]=o[k]}if(ae)ACT=ACT.filter(function(x){return x!==ae});hn('error');toast(m,true);draw(true);if(nm)card(nm)};
-call('v67Apply',[TOKEN,p],function(res){if(res&&res.ok){applyRes(res);LA=ae;hn('success');toast('Записано: '+(res.msg||'готово'),false,{label:'Отменить',fn:undoLast});draw(true);if(nm)card(nm)}else back((res&&res.msg)||'Не записано')},function(e){back(String(e))})}
+LA=ae;var qq=qGet();qq.push({id:Date.now()+'-'+Math.random().toString(36).slice(2,6),p:p});qSet(qq);qFlush()}
+var WQK='v67wq';
+function qGet(){try{return JSON.parse(localStorage.getItem(WQK)||'[]')}catch(e){return[]}}
+function qSet(a){try{localStorage.setItem(WQK,JSON.stringify(a))}catch(e){}}
+function qDone(id){qSet(qGet().filter(function(x){return x.id!==id}))}
+function qKey(p){var lab=(OUTS[p.kind].filter(function(o){return o[0]===p.out})[0]||['',''])[1];return [p.fio,p.kind==='call'?'Звонок':'Встреча',lab,String(p.cm||'').trim().slice(0,300)].join('|')}
+function inAct(p){if(p.kind==='step')return false;var k=qKey(p),ds=dstr(TODAY);return ACT.some(function(r){return r.ds===ds&&[r.fio,r.t,r.o,String(r.c||'').trim().slice(0,300)].join('|')===k})}
+function qReapply(){qGet().forEach(function(it){if(inAct(it.p))return;var c=P.filter(function(x){return x.fio===it.p.fio})[0];optAct(it.p);optApply(c,it.p)})}
+function qFlush(){var q=qGet();if(!q.length||qFlush.b||!API||!TOKEN)return;qFlush.b=1;var i=0;
+function stop(m){qFlush.b=0;if(m)toast(m,true);draw(true)}
+function nx(){if(i>=q.length){qFlush.b=0;draw(true);return}var it=q[i++];
+var go=function(){it.tried=1;qSet(qGet().map(function(x){return x.id===it.id?it:x}));
+fetch(API,{method:'POST',keepalive:true,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:'v67Apply',args:[TOKEN,it.p]})}).then(function(r){return r.json()}).then(function(j){var res=j&&j.res;
+if(j&&j.err){if(/недействительна|устарела/.test(String(j.err))){stop();return}qDone(it.id);toast(String(j.err),true);refreshQ();stop();return}
+qDone(it.id);if(res&&res.ok){applyRes(res);hn('success');toast('Записано: '+(res.msg||'готово'),false,{label:'Отменить',fn:undoLast})}else{toast((res&&res.msg)||'Не записано',true);refreshQ()}
+nx()}).catch(function(){stop('Нет связи. Запись сохранена, отправлю позже')})};
+if(it.tried&&it.p.kind!=='step'){call('data',[TOKEN],function(d){if(d&&!d.error){qSkip=1;setData(d);qSkip=0;if(inAct(it.p)){qDone(it.id);qReapply();nx();return}}go()},function(){stop()})}else go()}
+nx()}
+var qSkip=0;var _sd=setData;setData=function(d){_sd(d);if(!qSkip)qReapply()};
 function refresh(){toast('Обновляю…');call('v67Refresh',[TOKEN,true],function(res){if(res&&res.ok){setData(res.data);toast('Данные обновлены');draw(true)}else toast((res&&res.msg)||'Не обновилось',true)},function(e){toast(String(e),true)})}
 /* навигация */
 var MC={city:'Все',off:{},text:'',fileId:'',fileName:'',up:false,arm:false};
@@ -337,8 +358,9 @@ function sh(e){var t=e.target.closest('[data-nc],[data-nr],[data-ns],[data-wo],[
 if(d.wo){W.out=d.wo;if(d.wo!=='m'&&d.wo!=='c'){W.dk=null;W.tm=null}}else if(d.wd!==undefined){var a=d.wd.split('|');W[a[0]]=a[1]||null}else if(d.wt){var b=d.wt.split('|');W[b[0]]=b[1]}else if(d.wtype){W.type=d.wtype}
 wrender(false)}
 $('sin').onclick=sh;
-$('app').onclick=function(e){var t=e.target.closest('[data-mi],[data-c],[data-g],[data-f],[data-s],[data-mc],[data-p],[data-m],[data-rf],[data-to],[data-undo],[data-nw],[data-mcn],[data-mqc],[data-rq]');if(!t)return;var d=t.dataset;if(d.mi!==undefined){mailAct(+d.mi,d.mk);return}if(d.undo){undoLast();return}if(d.nw){nwOpen();return}if(d.mcn){mcOpen();return}if(d.mqc){mqCancel();return}if(d.rq){refreshQ();return}hp('light');
+$('app').onclick=function(e){var t=e.target.closest('[data-mi],[data-c],[data-g],[data-f],[data-s],[data-mc],[data-p],[data-m],[data-rf],[data-to],[data-undo],[data-nw],[data-mcn],[data-mqc],[data-rq],[data-ct]');if(!t)return;var d=t.dataset;if(d.ct){hp('light');callsOpen=!callsOpen;draw(true);return}if(d.mi!==undefined){mailAct(+d.mi,d.mk);return}if(d.undo){undoLast();return}if(d.nw){nwOpen();return}if(d.mcn){mcOpen();return}if(d.mqc){mqCancel();return}if(d.rq){refreshQ();return}hp('light');
 if(d.c)card(d.c);else if(d.rf)refresh();else if(d.to){go(d.to,d.g||undefined,tab==='more'||tab==='today'&&d.to!=='dig'&&d.to!=='find'&&d.to!=='stat')}else if(d.g)go('dig',d.g,true);else if(d.f){flt=d.f;draw(true)}else if(d.s){stack.push(snap());fstage=d.s;draw(false,'l');window.scrollTo(0,0);tgBack()}else if(d.mc){mcity=d.mc;draw(true)}else if(d.p){per=d.p;draw(true)}else if(d.m){stack.push(snap());dm=d.m;draw(false,'l');window.scrollTo(0,0);tgBack()}};
+qReapply();qFlush();if(!window.__qh){window.__qh=1;document.addEventListener('visibilitychange',function(){if(!document.hidden)qFlush()});window.addEventListener('online',qFlush);setInterval(qFlush,20000)}
 draw(true);tgBack()}
 
 (function(){var q=new URLSearchParams(location.search),t=q.get('t'),a=q.get('a');
@@ -348,7 +370,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261026a';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
+var BUILD='20261026b';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
