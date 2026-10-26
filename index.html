@@ -249,6 +249,10 @@ textarea{min-height:76px;resize:none}
 .sheet textarea{min-height:52px;height:52px;padding:9px 12px}
 .rowx{flex-wrap:nowrap!important;overflow-x:auto;margin:0 -16px;padding:2px 16px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.rowx::-webkit-scrollbar{display:none}.rowx .chip{flex:none;min-height:40px}
 .tw{display:grid;grid-template-columns:1fr 104px;gap:10px;align-items:stretch}.tw .tside{display:flex;flex-direction:column;justify-content:center;gap:8px;align-items:flex-start}.tw .tdisp{font-size:1.9rem;line-height:1;letter-spacing:-1px}.tw .tside .chip{min-height:36px;padding:0 10px;font-size:0.75rem}.tw .tside .note{font-size:0.7rem}
+.drow{display:flex;gap:8px;align-items:center}.drow .dl{flex:none;position:relative;overflow:hidden;gap:6px;min-height:40px;padding:0 12px}.drow .dl input{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px}.drow .dl svg{width:18px;height:18px}
+.drow .rowx{flex:1;min-width:0;margin:0 -16px 0 0;padding:2px 16px 4px 0}
+.wheel{border:0;background:transparent;-webkit-mask-image:linear-gradient(transparent,#000 28%,#000 72%,transparent);mask-image:linear-gradient(transparent,#000 28%,#000 72%,transparent)}
+.wc{position:relative;z-index:1}.wsel{z-index:0;border:0;background:var(--mark);border-radius:12px;left:4px;right:4px}.wc i.on{color:#0B0B0B}.wsep{z-index:2;color:#0B0B0B}
 </style></head><body>
 <div id="scr"><div class="app"><section id="app"></section></div></div>
 <div class="dock"><nav class="bar5" id="nav" aria-label="Разделы"></nav></div>
@@ -414,7 +418,7 @@ function closeCard(){cardName=null;$('card').classList.remove('on');document.bod
 var W=null,MR=[];
 function days8(){var a=[],d=new Date(TODAY);for(var i=0;i<14&&a.length<8;i++){if(i>0&&(d.getDay()===0||d.getDay()===6)){d=new Date(d.getTime()+86400000);continue}a.push(new Date(d));d=new Date(d.getTime()+86400000)}return a}
 var WD=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
-function dchips(field){var sel=W[field];return '<div class="chips rowx">'+(field==='ndk'&&!needNext()?'<button class="chip" data-wd="ndk|" aria-pressed="'+(!sel)+'">Без шага</button>':'')+days8().map(function(d,i){var v=iso(d),l=(i===0?'Сегодня':WD[d.getDay()]+' '+('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2));return '<button class="chip" data-wd="'+field+'|'+v+'" aria-pressed="'+(sel===v)+'">'+l+'</button>'}).join('')+'<label class="chip dl" aria-pressed="'+(!!sel&&!days8().some(function(d){return iso(d)===sel}))+'">'+(sel&&!days8().some(function(d){return iso(d)===sel})?'Своя: '+isoD(sel).slice(0,5):'Своя дата')+'<input type="date" id="'+field+'d" min="'+iso(TODAY)+'" value="'+(sel||'')+'"></label></div>'}
+function dchips(field){var sel=W[field],cust=!!sel&&!days8().some(function(d){return iso(d)===sel});return '<div class="drow"><label class="chip dl" aria-pressed="'+cust+'">'+svg('day',18)+'<span>'+(cust?isoD(sel).slice(0,5):'Дата')+'</span><input type="date" id="'+field+'d" min="'+iso(TODAY)+'" value="'+(sel||'')+'"></label><div class="chips rowx">'+(field==='ndk'&&!needNext()?'<button class="chip" data-wd="ndk|" aria-pressed="'+(!sel)+'">Без шага</button>':'')+days8().map(function(d,i){var v=iso(d),l=(i===0?'Сегодня':WD[d.getDay()]+' '+('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2));return '<button class="chip" data-wd="'+field+'|'+v+'" aria-pressed="'+(sel===v)+'">'+l+'</button>'}).join('')+'</div></div>'}
 function tchips(field){var sel=W[field]||'';
 return '<div class="tw"><div class="wheel" data-wf="'+field+'"><div class="wc">'+[7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22].map(function(h){return '<i>'+('0'+h).slice(-2)+'</i>'}).join('')+'</div><div class="wc">'+[0,5,10,15,20,25,30,35,40,45,50,55].map(function(m){return '<i>'+('0'+m).slice(-2)+'</i>'}).join('')+'</div><span class="wsel"></span><span class="wsep">:</span></div><div class="tside"><div class="tdisp" data-td="'+field+'">'+(sel?esc(sel):'—:—')+'</div>'+(sel?'<button class="chip" data-wt="'+field+'|">Сбросить</button>':'<span class="note">крутите колёса</span>')+'</div></div>'}
 function wUpd(f){var d=document.querySelector('[data-td="'+f+'"]');if(d)d.textContent=W[f]||'—:—';var g=$('wgo');if(g)g.disabled=!valid()}
@@ -588,7 +592,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261027e';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261027f';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
