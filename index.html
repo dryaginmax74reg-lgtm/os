@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><title>Helper</title>
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Продажи"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="theme-color" content="#F1EFE7"><link rel="apple-touch-icon" href="icon-180.png">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -340,15 +341,31 @@ $('app').onclick=function(e){var t=e.target.closest('[data-mi],[data-c],[data-g]
 if(d.c)card(d.c);else if(d.rf)refresh();else if(d.to){go(d.to,d.g||undefined,tab==='more'||tab==='today'&&d.to!=='dig'&&d.to!=='find'&&d.to!=='stat')}else if(d.g)go('dig',d.g,true);else if(d.f){flt=d.f;draw(true)}else if(d.s){stack.push(snap());fstage=d.s;draw(false,'l');window.scrollTo(0,0);tgBack()}else if(d.mc){mcity=d.mc;draw(true)}else if(d.p){per=d.p;draw(true)}else if(d.m){stack.push(snap());dm=d.m;draw(false,'l');window.scrollTo(0,0);tgBack()}};
 draw(true);tgBack()}
 
-(function(){var q=new URLSearchParams(location.search),t=q.get('t'),a=q.get('a');try{if(t&&a)sessionStorage.setItem('hq',JSON.stringify([t,a]));else{var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=x[0];a=x[1]}}}catch(e){}
-if(t&&a){try{history.replaceState(null,'',location.pathname)}catch(e){}}
+(function(){var q=new URLSearchParams(location.search),t=q.get('t'),a=q.get('a');
+function LS(k,v){try{if(v===undefined)return localStorage.getItem(k)||'';if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){}return ''}
+if(a)LS('v67a',a);else a=LS('v67a');
+if(t)LS('v67t',t);else t=LS('v67t');
+try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
+if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-if(!t||!a){D={error:'Откройте мини-апп кнопкой из бота.'};start();return}
-$('app').innerHTML='<div class="err"><p class="sub">Загружаю…</p></div>';
-var BUILD='20261025e';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
-var CK='v67cache',cached=null,shown=false;try{cached=JSON.parse(localStorage.getItem(CK)||'null')}catch(e){}
-if(cached&&cached.rows&&cached.head){cached.token=t;D=cached;shown=true;start()}
-fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:'data',args:[t]})}).then(function(r){return r.json()}).then(function(j){var d=j.res||{error:j.err||'Ошибка'};
+var BUILD='20261026a';try{if(sessionStorage.getItem('bld')!==BUILD){fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}else sessionStorage.setItem('bld',BUILD)}).catch(function(){})}}catch(e){}
+if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
+var CK='v67cache';
+function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
+function bad(m){return /недействительна|устарела/.test(String(m||''))}
+function form(msg){$('nav').style.display='none';$('app').innerHTML='<div class="err"><h1>Вход</h1><p class="sub">'+esc(msg||'Подтверди вход в Telegram: бот пришлёт сообщение с кнопкой «Это я».')+'</p><button class="hero" id="lgb"><span class="k">Подтверждение в Telegram</span><h2 style="font-size:1.7rem">Войти</h2></button><p class="sub" id="lgs" role="status"></p></div>';
+var b=$('lgb'),st=$('lgs');
+function fail(m){st.textContent=m;b.disabled=false}
+function poll(id,n){if(n>240){fail('Время вышло, нажми «Войти» ещё раз');return}setTimeout(function(){call('loginPoll',[id]).then(function(j){var r=j.res||{};if(r.tk){LS('v67t',r.tk);location.reload()}else if(r.wait)poll(id,n+1);else fail(r.err||j.err||'Ошибка')}).catch(function(){poll(id,n+1)})},2500)}
+b.onclick=function(){b.disabled=true;st.textContent='Отправляю запрос…';call('loginStart').then(function(j){var r=j.res||{};if(!r.id){fail(r.err||j.err||'Ошибка');return}st.innerHTML='Код на экране: <b style="font-size:1.4rem">'+esc(r.code)+'</b><br>Открой бота и нажми «Это я», если код совпал.';poll(r.id,0)}).catch(function(){fail('Нет связи с сервером')})}}
+function login(){$('nav').style.display='none';
+if(tg&&tg.initData){$('app').innerHTML='<div class="err"><p class="sub">Проверяю вход через Telegram…</p></div>';call('tg',[tg.initData]).then(function(j){var r=j.res||{};if(r.tk){LS('v67t',r.tk);location.reload()}else form(r.err||j.err)}).catch(function(){form('Нет связи с сервером')});return}
+form('')}
+function load(tk){QT=tk;var cached=null,shown=false;try{cached=JSON.parse(localStorage.getItem(CK)||'null')}catch(e){}
+if(cached&&cached.rows&&cached.head){cached.token=tk;D=cached;shown=true;start()}else $('app').innerHTML='<div class="err"><p class="sub">Загружаю…</p></div>';
+call('data',[tk]).then(function(j){var d=j.res||{error:j.err||'Ошибка'};
+if(d.error&&bad(d.error)){LS('v67t',null);login();return}
 if(!d.error){try{var c=JSON.parse(JSON.stringify(d));delete c.token;localStorage.setItem(CK,JSON.stringify(c))}catch(e){}}
-if(shown){if(!d.error&&window.__fresh)window.__fresh(d)}else{D=d;start()}}).catch(function(){if(!shown){D={error:'Нет связи с сервером'};start()}})})();
+if(shown){if(!d.error&&window.__fresh)window.__fresh(d)}else{D=d;start()}}).catch(function(){if(!shown){D={error:'Нет связи с сервером'};start()}})}
+if(t)load(t);else login()})();
 </script></body></html>
