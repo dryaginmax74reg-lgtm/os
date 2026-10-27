@@ -469,21 +469,21 @@ function phFor(c){var l=phGet()[phKey(c.fio)];return l&&l.length?l:null}
 function phLab(n){return n.slice(-4)}
 function contactBtns(c){var ph=phFor(c),h='';if(ph)h=ph.slice(0,3).map(function(n){return '<a class="btn main" href="tel:'+esc(n)+'" style="display:flex;justify-content:center;text-decoration:none">'+svg('call')+'Позвонить'+(ph.length>1?' · …'+esc(phLab(n)):'')+'</a>'}).join('');
 return '<div style="display:flex;flex-direction:column;gap:8px">'+h+tgBtn(c)+'</div>'}
-function vcfParse(tx){var cards=[];tx=String(tx).replace(/^﻿/,'').replace(/\r?\n[ \t]/g,'');
+function vcfParse(tx){var cards=[],all=0;tx=String(tx).replace(/^﻿/,'').replace(/\r?\n[ \t]/g,'');
 tx.split(/BEGIN:VCARD/i).slice(1).forEach(function(b){var fn='',n='',tel=[];b.split(/\r?\n/).forEach(function(l){var m=/^(?:item\d+\.)?([A-Za-z]+)((?:;[^:]*)?):(.*)$/.exec(l);if(!m)return;var k=m[1].toUpperCase(),v=m[3];if(k==='FN')fn=v;else if(k==='N'){var q=v.split(';');n=[q[1],q[2],q[0]].filter(Boolean).join(' ')}else if(k==='TEL'){var d=v.replace(/\D/g,'');if(d.length>=10)tel.push(nph(v))}});
-var nm=(fn||n).replace(/\\,/g,',').trim();if(nm&&tel.length)cards.push({n:nm,t:tel})});return cards}
+var nm=(fn||n).replace(/\\,/g,',').trim();all++;if(nm&&tel.length)cards.push({n:nm,t:tel})});window.__vcfAll=all;return cards}
 function rowsToCards(rows){var cards=[];rows.forEach(function(r){var ph=[],nm=[];(r||[]).forEach(function(x){var t=String(x==null?'':x).trim();if(!t)return;var d=t.replace(/\D/g,'');if(d.length>=10&&d.length>=t.replace(/[\s()+\-.]/g,'').length-1)ph.push(nph(t));else nm.push(t)});if(ph.length&&nm.length)cards.push({n:nm.join(' '),t:ph})});return cards}
-function phMatch(cards){var idx={},list=cards.map(function(c){var tk=phTok(c.n);return {tk:tk,set:new Set(tk),t:c.t}});
+function phMatch(cards){var idx={},list=cards.map(function(c){var tk=phTok(c.n);return {n:c.n,tk:tk,set:new Set(tk),t:c.t}});
 list.forEach(function(c){var k=c.tk.slice().sort().join(' ');if(k){(idx[k]=idx[k]||[]).push(c)}});
 var out={},miss=[],amb=[],found=0;
 P.forEach(function(cl){var tk=phTok(cl.fio);if(tk.length<2)return;var key=tk.slice().sort().join(' '),hit=idx[key];
 if(!hit){var sup=[],sub=[];list.forEach(function(c){if(c.tk.length>tk.length&&tk.every(function(w){return c.set.has(w)}))sup.push(c);else if(c.tk.length>=2&&c.tk.length<tk.length&&c.tk.every(function(w){return tk.indexOf(w)>=0}))sub.push(c)});
 if(sup.length===1)hit=sup;else if(sup.length>1){amb.push(cl.fio);return}else if(sub.length===1)hit=sub;else if(sub.length>1){amb.push(cl.fio);return}}
-if(!hit){miss.push(cl.fio);return}
+if(!hit){var sg=[];list.forEach(function(c){var sc=0,f0=false;tk.forEach(function(w,wi){if(c.tk.some(function(u){var m=Math.min(4,w.length,u.length);return m>=3&&u.slice(0,m)===w.slice(0,m)})){sc++;if(wi===0)f0=true}});if(sc>=2||(sc===1&&f0))sg.push([sc,c.n])});sg.sort(function(a,b){return b[0]-a[0]});miss.push({n:cl.fio,s:sg.slice(0,2).map(function(x){return x[1]}),k:sg.length});return}
 var ns=[];hit.forEach(function(c){c.t.forEach(function(n){if(ns.indexOf(n)<0)ns.push(n)})});out[key]=ns;found++});
 return {out:out,found:found,miss:miss,amb:amb,total:miss.length+amb.length+found}}
 function phApply(cards){if(!cards.length){toast('Не нашёл ни одного контакта с номером',true);return}var r=phMatch(cards);
-try{localStorage.setItem(PHK,JSON.stringify(r.out));localStorage.setItem(PHS,JSON.stringify({at:Date.now(),found:r.found,total:r.total,miss:r.miss,amb:r.amb,src:cards.length}))}catch(e){toast('Не хватило памяти в браузере',true);return}
+try{localStorage.setItem(PHK,JSON.stringify(r.out));localStorage.setItem(PHS,JSON.stringify({at:Date.now(),found:r.found,total:r.total,miss:r.miss,amb:r.amb,src:cards.length,all:window.__vcfAll||0}))}catch(e){toast('Не хватило памяти в браузере',true);return}
 hn('success');toast('Номера найдены у '+r.found+' из '+r.total);draw(true)}
 window.__phFile=function(inp){var f=inp.files&&inp.files[0];if(!f)return;var vcf=/\.vcf$/i.test(f.name),csv=/\.(csv|txt)$/i.test(f.name),rd=new FileReader();
 rd.onerror=function(){toast('Файл не открылся',true)};
@@ -496,9 +496,10 @@ function phbS(){var st=null;try{st=JSON.parse(localStorage.getItem(PHS)||'null')
 var h='<div class="hd"><div><div class="sub" style="margin:0 0 4px">Звонок из карточки</div><h1>Телефоны</h1></div></div>';
 var inp='<label class="btn main" style="display:flex;justify-content:center;cursor:pointer;margin-top:10px">'+(st?'Загрузить заново':'Загрузить контакты')+'<input type="file" accept=".vcf,.xlsx,.xls,.csv,.txt,text/vcard" style="display:none" onchange="window.__phFile(this)"></label>';
 if(!st)return h+'<p class="note">Загрузи файл контактов: .vcf (экспорт из Контактов или iCloud) либо Excel с ФИО и телефоном. Приложение найдёт клиентов из базы по ФИО и добавит в карточку кнопку «Позвонить». Номера остаются только в памяти этого телефона и никуда не отправляются.</p>'+inp;
-var d=new Date(st.at);h+='<div class="three"><div class="stat" style="background:var(--c-grn)"><span class="lab">Есть номер</span><b>'+st.found+'</b></div><div class="stat"><span class="lab">Нет в файле</span><b>'+st.miss.length+'</b></div><div class="stat"><span class="lab">Неоднозначно</span><b>'+st.amb.length+'</b></div></div><p class="note">Из '+st.total+' клиентов базы · загружено '+('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+' · контактов с номером в файле: '+st.src+'.</p>'+inp;
+var d=new Date(st.at);h+='<div class="three"><div class="stat" style="background:var(--c-grn)"><span class="lab">Есть номер</span><b>'+st.found+'</b></div><div class="stat"><span class="lab">Нет в файле</span><b>'+st.miss.length+'</b></div><div class="stat"><span class="lab">Неоднозначно</span><b>'+st.amb.length+'</b></div></div><p class="note">Из '+st.total+' клиентов базы · загружено '+('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+' · в файле контактов: '+(st.all||'?')+', из них с номером: '+st.src+'.</p>'+inp;
+function lstM(a,n){return a.length?'<div class="lab" style="font-weight:800;margin-top:16px">Не нашёл номер · ближайшие контакты</div><div class="box" style="padding:4px 14px">'+a.slice(0,n).map(function(x){x=typeof x==='string'?{n:x,s:[]}:x;return '<div class="mrow" style="cursor:default;align-items:start"><span><b style="font-weight:800">'+esc(x.n)+'</b><br><span class="w" style="font-weight:600;color:var(--mut);font-size:0.824rem;line-height:1.4">'+(x.s&&x.s.length?'в контактах: '+x.s.map(esc).join(' · '):'похожих имён в контактах нет')+'</span></span></div>'}).join('')+(a.length>n?'<p class="note" style="padding:8px 0">И ещё '+(a.length-n)+'.</p>':'')+'</div>':''}
 function lst(t,a,n){return a.length?'<div class="lab" style="font-weight:800;margin-top:16px">'+t+'</div><div class="box" style="padding:4px 14px">'+a.slice(0,n).map(function(x){return '<div class="mrow" style="cursor:default"><span><b style="font-weight:800">'+esc(x)+'</b></span></div>'}).join('')+(a.length>n?'<p class="note" style="padding:8px 0">И ещё '+(a.length-n)+'.</p>':'')+'</div>':''}
-h+=lst('Не нашёл номер',st.miss,40)+lst('Несколько похожих контактов',st.amb,20);
+h+=lstM(st.miss,40)+lst('Несколько похожих контактов',st.amb,20);
 h+='<button class="btn" data-phx="1" style="margin-top:12px">Убрать номера с этого телефона</button>';return h}
 function tgBtn(c){var u=D&&D.tgu&&D.tgu[nrm(c.fio)];return u?'<a class="btn" href="https://t.me/'+esc(u)+'" target="_blank" rel="noopener" style="display:flex;justify-content:center;text-decoration:none;color:inherit">Написать в Telegram</a>':'<div class="fld"><span>Telegram</span><b>Нет в Telegram</b></div>'}
 function card(name){var c=P.filter(function(x){return x.fio===name})[0];if(!c)return;if(cardName!==name)histOpen=false;cardName=name;
@@ -698,7 +699,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261027r';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261027s';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
