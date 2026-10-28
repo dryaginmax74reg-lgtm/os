@@ -585,7 +585,7 @@ if(W.kind!=='free'&&W.out&&W.out!=='m'&&W.out!=='c'&&W.out!=='u'&&W.out!=='r'&&W
 h+='<textarea id="wcm" placeholder="Комментарий, по желанию">'+esc(W.cm)+'</textarea><button class="btn main" id="wgo" '+(valid()?'':'disabled')+'>Записать</button>';
 $('sin').innerHTML=h;if(open){$('sheet').classList.add('on');$('scrim').classList.add('on');sheetOn=true;tgBack()}
 var ff=$('ffio');if(ff)ff.oninput=function(){W.fio=ff.value;var g2=$('wgo');if(g2)g2.disabled=!valid()};initWheels();var cm=$('wcm');if(cm)cm.oninput=function(){W.cm=cm.value};
-['dk','ndk'].forEach(function(f){var x=$(f+'d');if(x)x.onchange=function(){if(x.value){W[f]=x.value;wrender(false)}}});
+['dk','ndk'].forEach(function(f){var x=$(f+'d');if(x)x.onchange=function(){if(!x.value)return;W[f]=x.value;var lb=x.closest('label');if(lb){lb.setAttribute('aria-pressed','true');var sp=lb.querySelector('span');if(sp)sp.textContent=isoD(x.value).slice(0,5)}[].forEach.call(document.querySelectorAll('[data-wd^="'+f+'|"]'),function(bt){bt.setAttribute('aria-pressed','false')});var g=$('wgo');if(g)g.disabled=!valid()}});
 var g=$('wgo');if(g)g.onclick=wsubmit}
 function closeSheet(){sheetOn=false;W=null;$('sheet').classList.remove('kbd');$('sheet').classList.remove('on');$('scrim').classList.remove('on');tgBack()}
 function toast(m,err,act){var t=$('toast');t.textContent=m;t.style.background=err?'var(--alert)':'var(--ink)';t.style.color=err?'#0B0B0B':'var(--bg)';if(act){var b=document.createElement('button');b.textContent=act.label;b.style.cssText='margin-left:12px;padding:4px 10px;border:2px solid currentColor;background:transparent;font-weight:800';b.onclick=function(){t.classList.remove('on');act.fn()};t.appendChild(b)}t.style.pointerEvents=act?'auto':'none';t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(function(){t.classList.remove('on')},err?4200:(act?7000:2600))}
@@ -754,7 +754,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261028d';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261028e';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
