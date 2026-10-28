@@ -261,6 +261,11 @@ body.deep .bar5{transform:translateY(160%)}
 .drow .rowx{flex:1;min-width:0;margin:0 -16px 0 0;padding:2px 16px 4px 0}
 .wheel{border:0;background:transparent;-webkit-mask-image:linear-gradient(transparent,#000 28%,#000 72%,transparent);mask-image:linear-gradient(transparent,#000 28%,#000 72%,transparent)}
 .wc{position:relative;z-index:1}.wsel{z-index:0;border:0;background:var(--mark);border-radius:12px;left:4px;right:4px}.wc i.on{color:#0B0B0B}.wsep{z-index:2;color:#0B0B0B}
+.clrow{display:grid;grid-template-columns:1fr 1.25fr;gap:10px}.clrow .bm-cl{height:56px}.bm-go{display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 16px;background:var(--mark);color:#0B0B0B;border:2px solid var(--line);box-shadow:4px 4px 0 var(--line);font-size:1.06rem}.bm-go span{min-width:30px;height:30px;display:grid;place-items:center;background:#0B0B0B;color:var(--mark);font-weight:800;font-size:.95rem;padding:0 6px}
+.hero.sm{padding:12px 16px;gap:4px}.hero.sm h2{font-size:2.3rem;line-height:1}.hero.sm .go{margin-top:2px}
+.bm{grid-template-rows:112px 78px;gap:8px}.bm-c .bn b{font-size:3rem}.bm-o b{font-size:3.4rem}.bm-k b{font-size:2.2rem}
+.pl-t{grid-row:auto!important;flex-direction:row!important;align-items:center}.pl-t .dots,.pl-t .mh>span:last-child{display:none}.pl-t .pb b{font-size:1.75rem;letter-spacing:-1px}.pl-t .pb{align-items:center}.bm-pl{grid-template-columns:1.2fr 1fr 1fr;grid-template-rows:72px;height:72px;gap:8px}
+.sheet #ngo{position:sticky;bottom:-8px}
 </style></head><body>
 <div id="scr"><div class="app"><section id="app"></section></div></div>
 <div class="dock"><nav class="bar5" id="nav" aria-label="Разделы"></nav></div>
@@ -325,8 +330,8 @@ function callsBox(cl){return cl.length?'<div style="margin:12px 0 14px">'+cl.map
 function today(){var cl=callsList(),calls=cl.length,norm=+M['норма звонков']||20,held=+M['проведено встреч сегодня']||0,pc=Math.min(100,Math.round(calls/Math.max(1,norm)*100));
 var first=pass('ov').slice().sort(function(x,y){return y.ov-x.ov})[0]||pass('cool')[0]||pass('ns')[0];
 var h='<div class="hd"><div><div class="sub" style="margin:0 0 4px">'+esc(dateStr())+'</div><h1>Сегодня</h1></div><button class="sq" data-rf="1" aria-label="Обновить">'+svg('ref')+'</button></div>'+frBanner();
-if(first)h+='<button class="hero" data-c="'+esc(first.fio)+'"><span class="k">'+(first.ov?'<i></i>':'')+'Звонить первым</span><h2>'+esc(first.fio)+'</h2><span style="font-size:1rem;font-weight:700">'+esc(first.stage||'без стадии')+(first.who?' · '+esc(first.who):'')+'</span><span class="go"><span>'+(first.ov?'<span class="tag r">просрочено '+first.ov+' дн.</span>':'<span class="tag">'+esc(first.st)+'</span>')+'</span><span>Открыть →</span></span></button>';
-var dq=dayQ();if(dq.length)h+='<button class="btn main" data-cmd="1" style="width:100%">Начать прозвон · '+dq.length+'</button>';
+if(first)h+='<button class="hero sm" data-c="'+esc(first.fio)+'"><span class="k">'+(first.ov?'<i></i>':'')+'Звонить первым</span><h2>'+esc(first.fio)+'</h2><span style="font-size:1rem;font-weight:700">'+esc(first.stage||'без стадии')+(first.who?' · '+esc(first.who):'')+'</span><span class="go"><span>'+(first.ov?'<span class="tag r">просрочено '+first.ov+' дн.</span>':'<span class="tag">'+esc(first.st)+'</span>')+'</span><span>Открыть →</span></span></button>';
+var dq=dayQ();
 var nw0=nextWork(),cnt0=function(dt){return P.filter(function(c){return c.nd===dstr(dt)&&c.nt}).length},wkn=0;for(var i0=0;i0<7;i0++){var dd0=new Date(TODAY);dd0.setDate(dd0.getDate()+i0);wkn+=cnt0(dd0)}
 var ovl=pass('ov'),oldest=ovl.reduce(function(m,c){return Math.max(m,c.ov||0)},0),w5=wk(),ct0=cnt0(TODAY),dots='';for(var di=0;di<Math.min(ct0,8);di++)dots+='<i></i>';
 var ok=calls>=norm,bc=pc>=100?'var(--good)':pc>=50?'#F5A524':'var(--alert)';
@@ -335,8 +340,8 @@ h+='<div class="bm"><button class="bm-c" data-ct="1" aria-expanded="'+callsOpen+
 +'<button class="bm-k" data-g="cool"><span class="lab">Остывают</span><b>'+cu(pass('cool').length)+'</b></button>'
 +'<button class="bm-m" data-to="day"><span class="mh"><span class="lab">Встречи</span><b>'+w5+'/5</b></span><span class="sq5m">'+[0,1,2,3,4].map(function(i){return '<i'+(i<w5?' class="on"':'')+'></i>'}).join('')+'</span></button></div>';
 if(callsOpen)h+=callsBox(cl);
-h+='<button class="bm-cl" data-to="find"><span style="display:flex">'+svg('find')+'</span><b>Клиенты</b><span>поиск и карточки</span><span>→</span></button>';
-h+='<div class="bm-pl"><button class="pl-t" data-dp="t"><span class="mh"><span class="lab">План · сегодня</span><span>→</span></span><span class="pb"><b>'+cu(ct0)+'</b><span class="dots">'+dots+'</span></span></button><button class="pl-n" data-dp="n"><span><span class="lab" style="display:block">'+(nw0.getTime()===TODAY.getTime()+86400000?'Завтра':WD[nw0.getDay()])+'</span><em>'+(cnt0(nw0)?'шагов':'свободно')+'</em></span><b>'+cu(cnt0(nw0))+'</b></button><button class="pl-w" data-dp="w"><span><span class="lab" style="display:block">Неделя</span><em>всего шагов</em></span><b>'+cu(wkn)+'</b></button></div>';
+h+='<div class="clrow"><button class="bm-cl" data-to="find"><span style="display:flex">'+svg('find')+'</span><b>Клиенты</b></button>'+(dq.length?'<button class="bm-go" data-cmd="1"><b>Начать прозвон</b><span>'+dq.length+'</span></button>':'')+'</div>';
+h+='<div class="bm-pl"><button class="pl-t" data-dp="t"><span class="mh"><span class="lab">Сегодня<br>шагов</span><span>→</span></span><span class="pb"><b>'+cu(ct0)+'</b><span class="dots">'+dots+'</span></span></button><button class="pl-n" data-dp="n"><span><span class="lab" style="display:block">'+(nw0.getTime()===TODAY.getTime()+86400000?'Завтра':WD[nw0.getDay()])+'</span><em>'+(cnt0(nw0)?'шагов':'свободно')+'</em></span><b>'+cu(cnt0(nw0))+'</b></button><button class="pl-w" data-dp="w"><span><span class="lab" style="display:block">Неделя</span><em>всего шагов</em></span><b>'+cu(wkn)+'</b></button></div>';
 var qn=qGet().length;if(qn)h+='<button class="btn" data-qs="1" style="border-color:var(--alert);color:var(--alert-t);font-weight:800;text-align:left">Не отправлено записей: '+qn+'. Нажми, чтобы отправить сейчас</button>';
 h+='<p class="note">Данные на '+esc(M['обновлено'])+'</p>';return h}
 function more(){var ts=pass('ref').length+P.filter(function(c){return c.stage==='Отказ/Стоп'}).length*0,nlog=ACT.filter(function(r){return r.ds===dstr(TODAY)}).length,nst=P.filter(function(c){return c.stage==='Отказ/Стоп'}).length;
@@ -801,7 +806,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261028i';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261028j';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
