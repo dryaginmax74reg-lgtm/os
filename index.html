@@ -475,15 +475,19 @@ function phGet(){try{return JSON.parse(localStorage.getItem(PHK)||'{}')}catch(e)
 function phTok(x){return ldNm(x).replace(/[^a-zа-я0-9\s]/g,' ').split(/\s+/).filter(Boolean)}
 function phKey(x){return phTok(x).sort().join(' ')}
 function phFor(c){var e=phGet()[phKey(c.fio)];return e&&e[1]&&e[1].length?e:null}
+function capW(w){return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()}
+function clName(str,sn,need){var tk=String(str||'').replace(/[^А-Яа-яЁё\s-]/g,' ').split(/\s+/).filter(Boolean);if(need&&!tk.some(function(w){return ldNm(w)===sn}))return '';tk=tk.filter(function(w){return ldNm(w)!==sn&&w.length>=2&&w.length<=16});if(tk.length<1||tk.length>2)return '';return tk.map(capW).join(' ')}
+function greet(c){var sn=phTok(c.fio)[0]||'',tn=D&&D.tgn&&D.tgn[nrm(c.fio)],ph=phFor(c),nm=clName(tn,sn,false)||(ph?clName(ph[0],sn,true):'');return (nm?nm+', д':'Д')+'обрый день!'}
+function tgHref(c,u){return 'https://t.me/'+u+'?text='+encodeURIComponent(greet(c))}
 function crt(c){var ph=phFor(c),u=D&&D.tgu&&D.tgu[nrm(c.fio)],parts=[];
 if(ph)parts.push('Контакт: '+esc(ph[0])+' · сменить');else if(phCon().length)parts.push('Нет номера · привязать');
 if(!u)parts.push('нет в Telegram');
 if(!parts.length)return '';
-return '<div style="display:flex;gap:10px;align-items:center;min-width:0;justify-content:flex-end;flex:1"><button data-pk="'+esc(c.fio)+'" style="font-size:0.75rem;font-weight:700;color:var(--mut);background:none;border:0;padding:6px 0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-family:inherit">'+parts.join(' · ')+'</button>'+(ph&&ph[1].length>1?ph[1].slice(1,3).map(function(n){return '<a href="tel:'+esc(n)+'" style="font-size:0.75rem;font-weight:800;color:var(--ink);white-space:nowrap">…'+esc(n.slice(-4))+'</a>'}).join(''):'')+'</div>'}
+return '<div style="display:flex;gap:10px;align-items:center;min-width:0;justify-content:flex-end;flex:1"><button data-pk="'+esc(c.fio)+'" style="font-size:0.75rem;font-weight:700;color:var(--mut);background:none;border:0;padding:6px 0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-family:inherit">'+parts.join(' · ')+'</button>'+(ph&&ph[1].length>1?ph[1].slice(1,3).map(function(n){return '<a data-pc="'+esc(c.fio)+'" href="tel:'+esc(n)+'" style="font-size:0.75rem;font-weight:800;color:var(--ink);white-space:nowrap">…'+esc(n.slice(-4))+'</a>'}).join(''):'')+'</div>'}
 var CB_PH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg>',CB_TG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4L3 11l6 2 2 6 3-4 5 4z"/></svg>';
 function cbarRender(c){var ph=phFor(c),u=D&&D.tgu&&D.tgu[nrm(c.fio)],call='';
-if(ph)call='<a class="cb call" href="tel:'+esc(ph[1][0])+'">'+CB_PH+'Позвонить</a>';else if(phCon().length)call='<button class="cb" data-pk="'+esc(c.fio)+'">Привязать</button>';
-var tg=u?'<a class="cb ic" href="https://t.me/'+esc(u)+'" target="_blank" rel="noopener" aria-label="Написать в Telegram">'+CB_TG+'</a>':'<span class="cb ic off" aria-label="Нет в Telegram">'+CB_TG+'</span>';
+if(ph)call='<a class="cb call" data-pc="'+esc(c.fio)+'" href="tel:'+esc(ph[1][0])+'">'+CB_PH+'Позвонить</a>';else if(phCon().length)call='<button class="cb" data-pk="'+esc(c.fio)+'">Привязать</button>';
+var tg=u?'<a class="cb ic" href="'+esc(tgHref(c,u))+'" target="_blank" rel="noopener" aria-label="Написать в Telegram">'+CB_TG+'</a>':'<span class="cb ic off" aria-label="Нет в Telegram">'+CB_TG+'</span>';
 var b=$('cbar');b.style.gridTemplateColumns=call?'1fr 56px 1fr':'56px 1fr';b.innerHTML=call+tg+'<button class="cb log" data-w="call">Записать звонок</button>';b.classList.add('on')}
 function vcfParse(tx){var cards=[],all=0;tx=String(tx).replace(/^﻿/,'').replace(/\r?\n[ \t]/g,'');
 tx.split(/BEGIN:VCARD/i).slice(1).forEach(function(b){var fn='',n='',tel=[];b.split(/\r?\n/).forEach(function(l){var m=/^(?:item\d+\.)?([A-Za-z]+)((?:;[^:]*)?):(.*)$/.exec(l);if(!m)return;var k=m[1].toUpperCase(),v=m[3];if(k==='FN')fn=v;else if(k==='N'){var q=v.split(';');n=[q[1],q[2],q[0]].filter(Boolean).join(' ')}else if(k==='TEL'){var d=v.replace(/\D/g,'');if(d.length>=10)tel.push(nph(v))}});
@@ -715,6 +719,15 @@ document.addEventListener('focusin',function(e){var t=e.target;if(!isTxt(t))retu
 if(sh.contains(t)){sh.classList.add('kbd');sh.style.bottom='';sh.style.maxHeight='';[0,120,350,800].forEach(function(ms){setTimeout(kbNow,ms)});setTimeout(function(){try{var r=t.getBoundingClientRect(),sr=sh.getBoundingClientRect();sh.scrollTop+=(r.top+r.height/2)-(sr.top+sr.height/2)}catch(x){}},450)}
 else setTimeout(function(){try{t.scrollIntoView({block:'center',behavior:'smooth'})}catch(x){}},400)});
 document.addEventListener('focusout',function(e){if(!isTxt(e.target))return;clearTimeout(window.__kbT);window.__kbT=setTimeout(function(){var a=document.activeElement;if(isTxt(a))return;document.body.classList.remove('kbo');$('sheet').classList.remove('kbd');try{window.scrollTo(0,0)}catch(x){}},220)});
+
+/* после звонка: при возврате в приложение открыть итог звонка */
+function pcGet(){try{return JSON.parse(localStorage.getItem('v67pc')||'null')}catch(e){return null}}
+function pcSet(x){try{x?localStorage.setItem('v67pc',JSON.stringify(x)):localStorage.removeItem('v67pc')}catch(e){}}
+document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-pc]');if(a)pcSet({f:a.dataset.pc,t:Date.now(),h:0})},true);
+document.addEventListener('visibilitychange',function(){var x=pcGet();if(!x)return;if(Date.now()-x.t>3*3600000){pcSet(null);return}
+if(document.hidden){if(!x.h){x.h=Date.now();pcSet(x)}return}
+if(!x.h||Date.now()-x.h<4000){if(x.h)pcSet({f:x.f,t:x.t,h:0});return}
+pcSet(null);if(sheetOn)return;var c=P.filter(function(k){return k.fio===x.f})[0];if(!c)return;hp('light');setTimeout(function(){if(!sheetOn)wiz('call',x.f)},350)});
 var sdx=0,sx=0,sy=0,dx=0,mode=null,t0=0,lastBack=0;
 document.addEventListener('touchstart',function(e){if(e.touches.length===1&&e.touches[0].clientX<=20&&e.cancelable&&!e.target.closest('button,a,label,input,textarea,select'))e.preventDefault()},{passive:false});
 var cardEl=$('card'),sheetEl=$('sheet'),scrEl=$('scr'),lk=0;
@@ -741,7 +754,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261028c';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261028d';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
