@@ -325,9 +325,9 @@ function dateStr(){var s=new Date().toLocaleDateString('ru-RU',{weekday:'long',d
 function cu(n){return '<span data-n="'+n+'">'+n+'</span>'}
 function wk(){var f=since('Неделя');return ACT.filter(function(r){return r.d>=f&&r.t==='Встреча'}).length}
 var callsOpen=false;
-function callsList(){var ds=dstr(TODAY),seen={},out=[];ACT.forEach(function(r){if(r.ds!==ds||r.t!=='Звонок')return;var k=[r.fio,r.o,String(r.c||'').trim().toLowerCase()].join('|');if(seen[k])return;seen[k]=1;out.push(r)});return out}
+function callsList(){var ds=dstr(TODAY);return ACT.filter(function(r){return r.ds===ds&&r.t==='Звонок'&&r.o!=='Уже сделано ранее'})}
 function callsBox(cl){return cl.length?'<div style="margin:12px 0 14px">'+cl.map(function(r){return '<button class="li" data-c="'+esc(r.fio)+'" style="margin-bottom:6px"><div class="t"><b>'+esc(r.fio)+'</b><span class="d">'+esc(r.o||'')+'</span></div>'+(r.c?'<div class="w">'+esc(r.c)+'</div>':'')+'</button>'}).join('')+'</div>':''}
-function heldToday(){var ds=dstr(TODAY),seen={};ACT.forEach(function(r){if(r.ds===ds&&r.t==='Встреча')seen[nrm(r.fio)]=1});return Object.keys(seen).length}
+function heldToday(){var ds=dstr(TODAY);return ACT.filter(function(r){return r.ds===ds&&r.t==='Встреча'&&r.o!=='Встреча назначена'}).length}
 function today(){var cl=callsList(),calls=cl.length,held=heldToday(),norm=Math.max(0,20-5*held),pc=norm?Math.min(100,Math.round(calls/norm*100)):100;
 var first=pass('ov').slice().sort(function(x,y){return y.ov-x.ov})[0]||pass('cool')[0]||pass('ns')[0];
 var h='<div class="hd"><div><div class="sub" style="margin:0 0 4px">'+esc(dateStr())+'</div><h1>Сегодня</h1></div><button class="sq" data-rf="1" aria-label="Обновить">'+svg('ref')+'</button></div>'+frBanner()+qfBanner();
@@ -815,7 +815,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261030-reliability1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261101-counters1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
