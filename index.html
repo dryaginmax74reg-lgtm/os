@@ -266,6 +266,18 @@ body.deep .bar5{transform:translateY(160%)}
 .bm{grid-template-rows:112px 78px;gap:8px}.bm-c .bn b{font-size:3rem}.bm-o b{font-size:3.4rem}.bm-k b{font-size:2.2rem}
 .pl-t{grid-row:auto!important;flex-direction:row!important;align-items:center}.pl-t .dots,.pl-t .mh>span:last-child{display:none}.pl-t .pb b{font-size:1.75rem;letter-spacing:-1px}.pl-t .pb{align-items:center}.bm-pl{grid-template-columns:1.2fr 1fr 1fr;grid-template-rows:72px;height:72px;gap:8px}
 .sheet #ngo{position:sticky;bottom:-8px}
+.op-entry{background:#DDD1F5;color:#0B0B0B;box-shadow:4px 4px 0 var(--line)}
+.op-entry .t b{font-size:1.35rem}.op-entry .w{color:#29252e}.op-entry .tag{background:#0B0B0B;color:#DDD1F5;font-size:1rem}
+.op-row{background:var(--bg)}.op-row.op-first{background:var(--mark);color:#0B0B0B;border-radius:0 36px 0 0;box-shadow:5px 5px 0 var(--line);padding:18px;margin-bottom:5px}
+.op-row.op-first .t b{font-size:1.8rem;letter-spacing:-1px}.op-row.op-first .w{color:#302d17}.op-money{background:#C7E8D3;color:#0B0B0B;border-radius:0 0 0 28px}.op-money .lab,.op-money .note{color:#254033}.op-money .big{font-size:1.9rem;margin:9px 0}
+.op-fields{display:flex;flex-direction:column;gap:13px}.op-field{display:flex;flex-direction:column;gap:6px;font-size:.85rem;font-weight:700}.op-field input,.op-field select{width:100%;min-width:0;min-height:44px;font:inherit;font-size:16px;padding:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);border-radius:0}.op-fields details{display:flex;flex-direction:column;gap:10px}.op-fields summary{padding:10px 0}.op-fields details .op-field{margin-top:12px}
+.op-row{box-shadow:4px 4px 0 var(--line);color:#0B0B0B;padding:16px;margin-bottom:5px;overflow-wrap:anywhere}
+.op-row.op-need{background:#FFB51D}.op-row.op-proposal{background:#C9DDFF}.op-row.op-decision{background:#DDD1F5}.op-row.op-transfer{background:#C7E8D3}
+.op-row .w{color:#292D35}.op-stage-label{align-self:flex-start;background:#0B0B0B;color:#F1EFE7;padding:4px 7px;font-size:.69rem;font-weight:800;margin-top:4px;line-height:1.3}
+.op-row.op-first{background:#FFE62E}.op-row.op-first .op-stage-label{background:#0B0B0B;color:#FFE62E}
+.op-field[hidden]{display:none!important}.op-detail-hero{background:#FFE62E;color:#0B0B0B;border-radius:0 36px 0 0;box-shadow:5px 5px 0 var(--line)}.op-detail-hero .sub{color:#302D17}.op-detail-money{background:#DDD1F5;color:#0B0B0B}.op-detail-money .note{color:#29252E}.op-detail-step{background:#C9DDFF;color:#0B0B0B}.op-detail-step .note{color:#29394B}.op-detail-hero h2{overflow-wrap:anywhere}
+.op-row .t b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
 </style></head><body>
 <div id="scr"><div class="app"><section id="app"></section></div></div>
 <div class="dock"><nav class="bar5" id="nav" aria-label="Разделы"></nav></div>
@@ -299,7 +311,7 @@ var IC={today:'<path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/
 IC.log='<path d="M6 4h12v16H6zM9 9h6M9 13h6M9 17h3"/>';IC.stop='<circle cx="12" cy="12" r="8"/><path d="M7 7l10 10"/>';
 function svg(k,w){return '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"'+(w?' width="'+w+'" height="'+w+'"':'')+'>'+IC[k]+'</svg>'}
 var NAV=[['today','Сегодня'],['dig','Очередь'],['add','Запись'],['stat','Итоги'],['more','Ещё']];
-function navKey(t){return {day:'more',mail:'more',fun:'more',log:'more',stp:'more',wkr:'more',ld:'more',phb:'more'}[t]||t}
+function navKey(t){return {day:'more',mail:'more',fun:'more',log:'more',stp:'more',wkr:'more',ld:'more',phb:'more',opp:'more'}[t]||t}
 $('nav').innerHTML='<i class="ind" id="ind"></i>'+NAV.map(function(t){return '<button class="tab'+(t[0]==='add'?' add':'')+'" id="t-'+t[0]+'" data-t="'+t[0]+'">'+svg(t[0])+'<span>'+t[1]+'</span></button>'}).join('');
 function hasStep(c){return !!(c.nd&&pd(c.nd))}
 function farStep(c){var d=hasStep(c)?pd(c.nd):null;return !!d&&(d-TODAY)/86400000>60}
@@ -626,7 +638,7 @@ hc.scrollTop=Math.max(0,hh-7)*32;mc.scrollTop=mm*32;mark();setTimeout(function()
 var OUTS={call:[['ph','🔥 Тёплый'],['pc','🧊 Холодный'],['m','Встреча назначена'],['c','Назначен звонок'],['u','📵 Неудобно'],['r','Отказ']],free:[['r','Отказ'],['u','📵 Неудобно'],['pc','🧊 Холодный'],['ph','🔥 Тёплый']],meet:[['h','Проведена'],['p','Прогрев'],['o','Открыл счёт'],['r','Отказ']]};
 function needNext(){if(W.kind==='call')return(W.out==='ph'||W.out==='pc'||W.out==='p')&&HOT.indexOf(W.stage)>=0;if(W.kind==='meet')return W.out==='h'||W.out==='p'||W.out==='ph'||W.out==='pc';return false}
 function valid(){if(W.kind==='free'&&String(W.fio||'').trim().length<2)return false;if(W.kind==='step')return !!W.dk&&!!W.tm;if(!W.out)return false;if(W.kind==='call'){if(W.out==='m')return !!W.dk&&!!W.tm;if(W.out==='c')return !!W.dk&&!!W.tm}if(needNext()&&!W.ndk)return false;return true}
-function wiz(kind,fio){var c=P.filter(function(x){return x.fio===(fio||cardName)})[0];if(!c)return;W={kind:kind,fio:c.fio,id:c.id||'',stage:c.stage,out:null,dk:null,tm:null,ndk:null,ntm:'11:00',type:'Звонок',cm:''};wrender(true)}
+function wiz(kind,fio,clientId){var c=P.filter(function(x){return clientId?String(x.id)===String(clientId):x.fio===(fio||cardName)})[0];if(!c)return;W={kind:kind,fio:c.fio,id:c.id||'',stage:c.stage,out:null,dk:null,tm:null,ndk:null,ntm:'11:00',type:'Звонок',cm:''};wrender(true)}
 function wrender(open){var h='<h3>'+({call:'Звонок',meet:'Встреча',step:'Следующий шаг',free:'Без базы'}[W.kind])+' · '+esc(W.fio)+'</h3>';if(W.kind==='free')h+='<div class="sbox"><input id="ffio" value="'+esc(W.fio)+'" placeholder="Фамилия" autocomplete="off"></div><div id="ffs">'+fzSug(W.fio)+'</div><p class="note">Запишу только в журнал. В базу клиент не добавится.</p>';
 if(W.kind==='step'){h+='<div class="opts">'+['Звонок','Встреча'].map(function(t){return '<button class="opt" data-wtype="'+t+'" aria-pressed="'+(W.type===t)+'">'+t+'</button>'}).join('')+'</div><div class="fl">Дата</div>'+dchips('dk')+'<div class="fl">Время</div>'+tchips('tm')}
 else{h+='<div class="opts">'+OUTS[W.kind].map(function(o){return '<button class="opt'+(o[0]==='r'?' danger':'')+'" data-wo="'+o[0]+'" aria-pressed="'+(W.out===o[0])+'">'+o[1]+'</button>'}).join('')+'</div>';
@@ -739,7 +751,7 @@ $('scrim').onclick=closeSheet;
 function go(t,f,push){hp('light');if(sheetOn)closeSheet();if(cardName)closeCard();if(push)stack.push(snap());else stack=[];var ks=NAV.map(function(x){return x[0]});var dir=push?'p':'f';tab=t;if(f)flt=f;fstage=null;dm=null;draw(false,dir);$('scr').scrollTop=0;tgBack()}
 var prevTab='today',tm;
 function runCount(){document.querySelectorAll('[data-n]').forEach(function(e){var n=+e.dataset.n;if(!n||n<2)return;var t0=performance.now();function f(t){var k=Math.min(1,(t-t0)/800),v=Math.round(n*(1-Math.pow(1-k,3)));e.textContent=v;if(k<1)requestAnimationFrame(f)}e.textContent='0';requestAnimationFrame(f)})}
-function render(){var sy=$('scr').scrollTop,rk=tab+'|'+flt+'|'+fstage+'|'+dm+'|'+dper+'|'+per+'|'+lper+'|'+mcity,same=rk===window.__rk;window.__rk=rk;$('app').innerHTML={today:today,dig:dig,fun:fun,find:find,day:day,mail:mail,stat:stat,more:more,log:logS,stp:stpS,wkr:wkrS,ld:ldS,phb:phbS}[tab]();
+function render(){var sy=$('scr').scrollTop,rk=tab+'|'+flt+'|'+fstage+'|'+dm+'|'+dper+'|'+per+'|'+lper+'|'+mcity,same=rk===window.__rk;window.__rk=rk;$('app').innerHTML={today:today,dig:dig,fun:fun,find:find,day:day,mail:mail,stat:stat,more:more,log:logS,stp:stpS,wkr:wkrS,ld:ldS,phb:phbS,opp:opScreen}[tab]();
 var k=NAV.map(function(x){return x[0]}).indexOf(navKey(tab));$('ind').style.transform='translateX('+(Math.max(k,0)*100)+'%)';$('ind').style.opacity=k<0?0:1;
 NAV.forEach(function(t){$('t-'+t[0]).setAttribute('aria-current',t[0]===navKey(tab)?'page':'false');$('t-'+t[0]).setAttribute('aria-selected',t[0]===navKey(tab))});
 if(window.__wy!=null){$('scr').scrollTop=window.__wy;window.__wy=null}else if(same)$('scr').scrollTop=sy;else $('scr').scrollTop=0;
@@ -809,6 +821,136 @@ if(cardName){cardEl.style.transition='';cardEl.style.transform='';if(go2){lastBa
 document.addEventListener('touchend',fin,{passive:true});document.addEventListener('touchcancel',fin,{passive:true});
 try{history.pushState({h:1},'');window.addEventListener('popstate',function(){history.pushState({h:1},'');if(Date.now()-lastBack>800&&canBack())back()})}catch(e){}
 }
+/* ATON opportunities: pure state transitions, monetary amounts in kopecks. */
+function opMoney_(value) {
+  if (value === '' || value == null) return null;
+  var s=String(value).replace(/[\s\u00a0]/g,'').replace(',','.');
+  if(!/^\d{1,12}(\.\d{1,2})?$/.test(s))throw Error('Укажите сумму в рублях, до двух знаков после запятой');
+  var p=s.split('.'),n=Number(p[0])*100+Number(((p[1]||'')+'00').slice(0,2));
+  if(!Number.isSafeInteger(n)||n<=0)throw Error('Сумма должна быть больше нуля');return n;
+}
+function opText_(v,max){var s=String(v==null?'':v).trim();if(s.length>max)throw Error('Текст слишком длинный');return s;}
+function opDate_(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s||''))return false;var d=new Date(s+'T12:00:00Z');return !isNaN(d.getTime())&&d.toISOString().slice(0,10)===s;}
+function opSum_(o){return o.receipts.reduce(function(n,r){return n+(r.voided?0:r.amount);},0);}
+function opBalance_(o){return o.amountType==='agreed'&&o.amountMin!=null?Math.max(0,o.amountMin-opSum_(o)):0;}
+function opReduce_(old,p,env){
+  var o=old?JSON.parse(JSON.stringify(old)):null;
+  if(p.op==='create'){
+    if(old)throw Error('Возможность уже существует');
+    o={schema:1,id:env.id,clientId:env.clientId,revision:0,status:'active',stage:'need',turn:'mine',waitUntil:'',subject:'',amountType:'unknown',amountMin:null,amountMax:null,portfolio:null,note:'',blocker:'',receipts:[],createdAt:env.now,updatedAt:env.now,closedReason:''};
+  }else{
+    if(!o)throw Error('Возможность не найдена');
+    if(p.revision!==o.revision)throw Error('Карточка изменилась. Обновите перед сохранением');
+  }
+  if(p.op==='create'||p.op==='update'){
+    if(o.status==='closed')throw Error('Закрытую возможность нельзя редактировать');
+    var x=p.fields||{};
+    ['subject','note','blocker'].forEach(function(k){if(Object.prototype.hasOwnProperty.call(x,k))o[k]=opText_(x[k],k==='subject'?160:1000);});
+    if(!o.subject)throw Error('Напишите, что обсуждаете с клиентом');
+    if(x.stage!=null){if(['need','proposal','decision','transfer'].indexOf(x.stage)<0)throw Error('Неверный этап');o.stage=x.stage;}
+    if(x.turn!=null){if(['mine','client'].indexOf(x.turn)<0)throw Error('Укажите, чей ход');o.turn=x.turn;}
+    if(x.waitUntil!=null){if(x.waitUntil&&!opDate_(x.waitUntil))throw Error('Проверьте дату возврата');o.waitUntil=x.waitUntil||'';}
+    if(x.amountType!=null){
+      if(['unknown','discussed','agreed'].indexOf(x.amountType)<0)throw Error('Неверный смысл суммы');o.amountType=x.amountType;
+      o.amountMin=o.amountType==='unknown'?null:opMoney_(x.amountMin);o.amountMax=o.amountType==='discussed'?opMoney_(x.amountMax):null;
+      if(o.amountType!=='unknown'&&o.amountMin==null)throw Error('Укажите сумму или выберите «Не обсуждалась»');
+      if(o.amountMax!=null&&o.amountMax<o.amountMin)throw Error('Верхняя граница меньше нижней');
+    }
+    if(x.portfolio!=null)o.portfolio=opMoney_(x.portfolio);
+    if(o.turn==='client'&&!o.waitUntil)throw Error('Когда вернуться к клиенту?');
+  }else if(p.op==='receipt'){
+    if(o.status!=='active')throw Error('Поступление можно записать только в активную возможность');
+    if(!opDate_(p.date)||p.date>env.today)throw Error('Проверьте дату поступления: будущая дата недопустима');
+    var amount=opMoney_(p.amount);if(amount==null)throw Error('Укажите сумму поступления');
+    if(o.receipts.length>=100)throw Error('Слишком много поступлений; нужна сверка');
+    if(!Number.isSafeInteger(opSum_(o)+amount))throw Error('Сумма поступлений слишком велика для точного учёта');
+    o.receipts.push({id:env.eventId,amount:amount,date:p.date,voided:false});
+  }else if(p.op==='voidReceipt'){
+    var r=o.receipts.filter(function(r){return r.id===p.receiptId;})[0];if(!r||r.voided)throw Error('Поступление уже отменено или не найдено');r.voided=true;
+  }else if(p.op==='pause'){
+    if(o.status!=='active')throw Error('Возможность уже не в работе');if(p.until&&!opDate_(p.until))throw Error('Проверьте дату');o.status='paused';o.pauseUntil=p.until||'';
+  }else if(p.op==='resume'){
+    if(o.status!=='paused')throw Error('Возможность не на паузе');o.status='active';o.pauseUntil='';
+  }else if(p.op==='close'){
+    if(o.status==='closed')throw Error('Возможность уже закрыта');
+    if(['realized','refused','irrelevant','duplicate'].indexOf(p.reason)<0)throw Error('Укажите причину закрытия');
+    if(p.reason==='realized'&&(!opSum_(o)||opBalance_(o)>0)&&p.confirmIncomplete!==true)throw Error('Есть неполученный остаток или нет поступлений. Подтвердите завершение отдельно');
+    o.status='closed';o.closedReason=p.reason;
+  }else throw Error('Неизвестное действие');
+  o.revision++;o.updatedAt=env.now;return o;
+}
+
+/* Runs inside existing init(); no replacement of existing activity/step queue. */
+var OP={items:[],loaded:false,loading:false,error:'',filter:'mine',selected:null,edit:null,draft:null,busy:false,pending:null},OPK='aton-opportunity-pending-v1';
+var opStages={need:'Уточняем потребность',proposal:'Готовлю предложение',decision:'Клиент принимает решение',transfer:'Оформление / перевод'};
+function opClient(o){return P.filter(function(c){return String(c.id)===String(o.clientId)})[0]}
+function opToday(){return iso(TODAY).replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3')}
+function opDay(c){var d=c&&pd(c.nd);return d&&!isNaN(d.getTime())?iso(d).replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3'):''}
+function opRub(n){return n==null?'':(n/100).toLocaleString('ru-RU',{maximumFractionDigits:2})+' ₽'}
+function opMine(o){var c=opClient(o);return o.status==='active'&&(o.turn==='mine'||(o.waitUntil&&o.waitUntil<=opToday())||(opDay(c)&&opDay(c)<=opToday()))}
+function opReason(o){var c=opClient(o),d=opDay(c);if(o.turn==='client'&&o.waitUntil&&o.waitUntil<=opToday())return 'Пора проверить решение';if(d&&d<opToday())return 'Шаг просрочен';if(d===opToday())return 'Шаг сегодня'+(c.ntm?' · '+c.ntm:'');if(o.turn==='client')return 'Контроль · '+o.waitUntil.split('-').reverse().join('.');return d?'Шаг · '+c.nd+(c.ntm?' '+c.ntm:''):'Следующий шаг не назначен'}
+function opAmount(o){return o.amountType==='unknown'?'Сумма не обсуждалась':(o.amountType==='agreed'?'Клиент подтвердил: ':'Обсуждаем: ')+opRub(o.amountMin)+(o.amountMax!=null?' — '+opRub(o.amountMax):'')}
+function opLoad(force){if(OP.storageError)return;if(OP.edit){toast('Сначала сохраните или отмените изменения',true);return}if(OP.loading||OP.loaded&&!force)return;OP.loading=true;OP.error='';call('opList',[TOKEN],function(r){OP.loading=false;if(!r||!r.ok){OP.error=r&&r.msg||'Не удалось загрузить возможности'}else{OP.items=r.items;OP.loaded=true}if(tab==='opp'||tab==='today')draw(true)},function(m){OP.loading=false;OP.error=m; if(tab==='opp')draw(true)})}
+function opSelect(id){OP.selected=id;OP.edit=null;OP.draft=null;go('opp',null,tab!=='opp');opLoad(false)}
+function opScreen(){
+ var h='<div class="hd"><div><h1>Возможности</h1><p class="sub">Договорённости и следующие действия</p></div><button class="sq" data-op="reload" aria-label="Обновить возможности">'+svg('ref')+'</button></div>';
+ if(OP.pending)return h+'<div class="box"><b>Сохранение требует проверки</b><p class="note">Повтор проверит то же действие без создания дубля. Другие изменения доступны после сверки.</p><button class="btn main" data-op="retry">Проверить сохранение</button></div>';
+ if(OP.error)return h+'<div class="box" role="alert">'+esc(OP.error)+'<button class="btn" data-op="reload">Повторить загрузку</button></div>';
+ if(!OP.loaded)return h+'<p role="status">Загружаю возможности…</p>';
+ if(OP.edit)return h+opForm();
+ var o=OP.items.filter(function(x){return x.id===OP.selected})[0];if(o)return h+opDetail(o);
+ var a=OP.items.filter(function(o){return OP.filter==='archive'?o.status!=='active':o.status==='active'});
+ var counts={mine:a.filter(opMine).length,client:a.filter(function(o){return !opMine(o)}).length,all:a.length};
+ h+='<div class="chips">'+[['mine','Мой ход'],['client','Жду клиента'],['all','Все'],['archive','Пауза / архив']].map(function(x){return '<button class="chip" data-op="filter" data-value="'+x[0]+'" aria-pressed="'+(OP.filter===x[0])+'">'+x[1]+(counts[x[0]]!=null?' · '+counts[x[0]]:'')+'</button>'}).join('')+'</div>';
+ if(OP.filter==='mine')a=a.filter(opMine);if(OP.filter==='client')a=a.filter(function(o){return !opMine(o)});
+ function rank(o){var c=opClient(o),d=opDay(c);return !c?0:opMine(o)?(!d?1:d<opToday()?2:d===opToday()?3:4):5}
+ a.sort(function(x,y){return rank(x)-rank(y)||(opDay(opClient(x))||'9999').localeCompare(opDay(opClient(y))||'9999')||x.id.localeCompare(y.id)});
+ h+=a.map(function(o,i){var c=opClient(o);return '<button class="li op-row op-'+o.stage+' '+(i===0&&OP.filter==='mine'?'op-first':'')+'" data-op="select" data-value="'+esc(o.id)+'"><div class="t"><b>'+esc(c?c.fio:'Клиент требует сверки')+'</b><span class="d">→</span></div><strong>'+esc(o.subject)+'</strong><div class="w">'+esc(o.status==='paused'?'На паузе'+(o.pauseUntil?' до '+o.pauseUntil:''):o.status==='closed'?'Закрыта':opReason(o))+'</div><div class="w">'+esc(opAmount(o))+'</div><div class="op-stage-label">'+esc(opStages[o.stage])+'</div></button>'}).join('')||'<div class="empty">'+(OP.filter==='mine'?'На вашей стороне действий нет':'Здесь пока нет возможностей')+'</div>';
+ var active=OP.items.filter(function(o){return o.status==='active'}),total=active.reduce(function(n,o){return n+opBalance_(o)},0);
+ h+='<div class="box op-money"><span class="lab">Ожидается по подтверждённым суммам</span><div class="big">'+esc(opRub(total))+'</div><p class="note">За вычетом отмеченных поступлений. Это не доход.</p></div><p class="note">Добавить возможность можно из карточки клиента.</p>';return h;
+}
+function opDetail(o){var c=opClient(o),h='<button class="btn" data-op="list">← Список возможностей</button><div class="box op-detail-hero"><h2>'+esc(c?c.fio:'Клиент не найден')+'</h2><b>'+esc(o.subject)+'</b><p class="sub">'+esc(opStages[o.stage])+' · '+esc(o.status==='active'?'В работе':o.status==='paused'?'На паузе':'Закрыта')+'</p></div><div class="box op-detail-money"><b>'+esc(opAmount(o))+'</b>'+(o.portfolio!=null?'<p class="note">Портфель на анализе: '+esc(opRub(o.portfolio))+'</p>':'')+'<p class="note">'+(o.receipts.some(function(r){return !r.voided})?'Поступило: '+esc(opRub(opSum_(o))):'Поступления не отмечены')+(o.amountType==='agreed'?' · Осталось: '+esc(opRub(opBalance_(o))):'')+'</p></div>';
+ if(c&&o.status==='active')h+='<div class="box op-detail-step"><b>'+esc(opReason(o))+'</b><p class="note">'+esc(c.nt||'Шаг не назначен')+' · '+esc(c.nd||'')+' '+esc(c.ntm||'')+'</p><div class="two"><button class="btn main" data-op="step">Назначить / перенести</button><button class="btn" data-op="call">Итог звонка</button></div><button class="btn" data-op="meet">Итог встречи</button></div>';
+ if(o.note)h+='<div class="box"><span class="lab">Договорённость</span><p>'+esc(o.note)+'</p></div>';if(o.blocker)h+='<div class="box"><span class="lab">Что мешает</span><p>'+esc(o.blocker)+'</p></div>';
+ if(o.status==='active')h+='<button class="btn main" data-op="edit">Изменить возможность</button><button class="btn" data-op="receipt">+ Зафиксировать поступление</button><div class="two"><button class="btn" data-op="pause">Пауза</button><button class="btn" data-op="close">Завершить</button></div>';
+ if(o.status==='paused')h+='<button class="btn main" data-op="resume">Вернуть в работу</button>';
+ if(o.receipts.length)h+='<div class="box"><b>Поступления · ручные отметки</b>'+o.receipts.map(function(r){return '<p>'+esc(r.date)+' · '+esc(opRub(r.amount))+(r.voided?' · отменено':' <button class="chip" data-op="void" data-value="'+esc(r.id)+'">Исправить</button>')+'</p>'}).join('')+'</div>';
+ return h;
+}
+function opField(id,label,value,type){if(OP.formValues&&Object.prototype.hasOwnProperty.call(OP.formValues,id))value=OP.formValues[id];return '<label class="op-field">'+label+'<input id="'+id+'" type="'+(type||'text')+'" value="'+esc(value||'')+'" '+(type==='date'?'':'maxlength="1000"')+'></label>'}
+function opOptions(id,label,options,value){if(OP.formValues&&Object.prototype.hasOwnProperty.call(OP.formValues,id))value=OP.formValues[id];return '<label class="op-field">'+label+'<select id="'+id+'">'+options.map(function(x){return '<option value="'+x[0]+'" '+(x[0]===value?'selected':'')+'>'+x[1]+'</option>'}).join('')+'</select></label>'}
+function opForm(){var x=OP.draft||{},h='<button class="btn" data-op="cancel">← Отменить изменения</button><form id="op-form"><div class="box op-fields">';
+ if(OP.edit==='receipt')h+=opField('op-amount','Фактически поступило, ₽','')+opField('op-date','Дата поступления',opToday(),'date')+'<p class="note">Подтверждаете вручную. Банковская выписка не проверяется.</p>';
+ else if(OP.edit==='pause')h+=opField('op-until','Вернуться к возможности (необязательно)','','date');
+ else if(OP.edit==='close')h+=opOptions('op-reason','Причина',[['realized','Реализовано'],['refused','Отказ'],['irrelevant','Потребность отпала'],['duplicate','Дубль / ошибка']],'realized')+'<label><input type="checkbox" id="op-incomplete"> Подтверждаю завершение с неполученным остатком или без поступлений</label>';
+ else h+=opField('op-subject','Что обсуждаем',x.subject)+(OP.edit==='create'?'<details><summary>Этап и ожидание клиента</summary>':'')+opOptions('op-stage','Этап',Object.keys(opStages).map(function(k){return [k,opStages[k]]}),x.stage||'need')+opOptions('op-turn','Чей ход',[['mine','Мой'],['client','Жду клиента']],x.turn||'mine')+opField('op-wait','Когда вернуться к клиенту',x.waitUntil,'date')+(OP.edit==='create'?'</details>':'')+opOptions('op-type','Сумма',[['unknown','Не обсуждалась'],['discussed','Пока обсуждаем'],['agreed','Клиент подтвердил']],x.amountType||'unknown')+opField('op-min','Сумма или нижняя граница, ₽',x.amountMin==null?'':String(x.amountMin/100))+opField('op-max','Верхняя граница, ₽ (необязательно)',x.amountMax==null?'':String(x.amountMax/100))+'<details><summary>Договорённость и дополнительные сведения</summary>'+opField('op-portfolio','Портфель на анализе, ₽',x.portfolio==null?'':String(x.portfolio/100))+opField('op-note','Договорённость',x.note)+opField('op-blocker','Что мешает',x.blocker)+'</details><p class="note">Существующий следующий шаг клиента сохраняется. Назначить его можно после сохранения.</p>';
+ return h+'</div><p id="op-status" role="status"></p><button class="btn main" type="submit">Сохранить</button></form>';
+}
+function opNew(c){var existing=OP.items.filter(function(o){return String(o.clientId)===String(c.id)&&o.status!=='closed'})[0];if(existing){opSelect(existing.id);return}OP.selected=null;OP.edit='create';OP.formValues={};OP.draft={clientId:String(c.id),subject:''};go('opp',null,true)}
+function opSend(p){
+ if(OP.busy)return;try{var raw=JSON.stringify(p);localStorage.setItem(OPK,raw);if(localStorage.getItem(OPK)!==raw)throw Error('storage')}catch(e){toast('Не удалось сохранить запрос на телефоне. Данные в форме сохранены; отправки не было.',true);return}
+ OP.pending=p;OP.busy=true;var status=$('op-status');if(status)status.textContent='Сохраняется…';document.querySelectorAll('#op-form button,#op-form input,#op-form select').forEach(function(b){b.disabled=true});
+ call('opSave',[TOKEN,p],function(r){OP.busy=false;if(!r||!r.ok){toast(r&&r.msg||'Не подтверждено. Повторите проверку.',true);if(r&&r.rejected){OP.pending=null;try{localStorage.removeItem(OPK)}catch(e){}document.querySelectorAll('#op-form button,#op-form input,#op-form select').forEach(function(b){b.disabled=false});if(status)status.textContent=r.msg;else draw(true)}else draw(true);return}OP.items=OP.items.filter(function(o){return o.id!==r.item.id});OP.items.push(r.item);OP.selected=r.item.id;OP.edit=null;OP.draft=null;OP.pending=null;try{localStorage.removeItem(OPK)}catch(e){}toast('Сохранено');draw(true)},function(){OP.busy=false;toast('Ответ не получен. Запрос сохранён на телефоне; проверьте повтором.',true);draw(true)})
+}
+function opAction(op,extra){var o=OP.items.filter(function(x){return x.id===OP.selected})[0];opSend(Object.assign({op:op,id:o&&o.id,revision:o&&o.revision,actionId:'opp-'+Date.now()+'-'+Math.random().toString(36).slice(2,14)},extra||{}))}
+document.addEventListener('submit',function(e){if(e.target.id!=='op-form')return;e.preventDefault();var val=function(id){return $(id)?$(id).value:''};if(OP.edit==='receipt'){try{opMoney_(val('op-amount'))}catch(x){toast(x.message,true);return}opAction('receipt',{amount:val('op-amount'),date:val('op-date')});}else if(OP.edit==='pause')opAction('pause',{until:val('op-until')});else if(OP.edit==='close')opAction('close',{reason:val('op-reason'),confirmIncomplete:$('op-incomplete').checked});else{
+ var fields={subject:val('op-subject'),stage:val('op-stage'),turn:val('op-turn'),waitUntil:val('op-wait'),amountType:val('op-type'),amountMin:val('op-min'),amountMax:val('op-max'),portfolio:val('op-portfolio'),note:val('op-note'),blocker:val('op-blocker')};
+ var p={op:OP.edit==='create'?'create':'update',fields:fields,actionId:'opp-'+Date.now()+'-'+Math.random().toString(36).slice(2,14)};if(p.op==='create')p.clientId=OP.draft.clientId;else{var o=OP.items.filter(function(x){return x.id===OP.selected})[0];p.id=o.id;p.revision=o.revision}
+ try{opReduce_(p.op==='create'?null:o,p,{id:'local',clientId:p.clientId,today:opToday(),now:''})}catch(x){toast(x.message,true);return}opSend(p);
+ }});
+document.addEventListener('click',function(e){var b=e.target.closest('[data-op]');if(!b)return;var a=b.dataset.op,o=OP.items.filter(function(x){return x.id===OP.selected})[0];
+ if(a==='retry'){if(OP.pending)opSend(OP.pending);return}if(OP.busy)return;
+ if(a==='home'){OP.selected=null;OP.edit=null;go('opp',null,true);opLoad(false)}else if(a==='reload')opLoad(true);else if(a==='filter'){OP.filter=b.dataset.value;draw(true)}else if(a==='select')opSelect(b.dataset.value);else if(a==='list'){OP.selected=null;draw(true)}else if(a==='new'){var c=P.filter(function(x){return String(x.id)===b.dataset.value})[0];if(!OP.loaded){toast('Сначала загрузите возможности',true);opLoad(true);return}if(c)opNew(c)}else if(a==='cancel'){OP.edit=null;OP.draft=null;draw(true)}else if(['edit','receipt','pause','close'].indexOf(a)>=0){OP.edit=a;OP.formValues={};OP.draft=JSON.parse(JSON.stringify(o));draw(true)}else if(a==='resume')opAction('resume');else if(a==='void'){if(confirm('Отменить эту ручную отметку поступления? История сохранится.'))opAction('voidReceipt',{receiptId:b.dataset.value})}else if(['step','call','meet'].indexOf(a)>=0){var c=opClient(o);if(c)wiz(a,c.fio,c.id);else toast('Клиент не найден',true)}
+});
+var opOldToday=today;today=function(){var h=opOldToday(),n=OP.items.filter(function(o){return o.status==='active'}).length,now=OP.items.filter(function(o){return opMine(o)&&(!opDay(opClient(o))||opDay(opClient(o))<=opToday())}).length;var entry='<button class="li op-entry" data-op="home"><div class="t"><b>Возможности</b><span class="tag">'+(OP.loaded?n:'…')+'</span></div><div class="w">'+(OP.loaded?'Требуют действия: '+now:'Открыть договорённости')+' →</div></button>';return h.replace(/(<div class="clrow">[\s\S]*?<\/div>)/,'$1'+entry)};
+var opOldCard=card;card=function(name){opOldCard(name);var c=P.filter(function(x){return x.fio===name})[0];if(c&&c.id){var b=document.createElement('button');b.className='btn';b.dataset.op='new';b.dataset.value=String(c.id);b.textContent=OP.items.some(function(o){return String(o.clientId)===String(c.id)&&o.status!=='closed'})?'Открыть возможность':'+ Добавить возможность';$('cin').appendChild(b)}};
+try{var savedOp=JSON.parse(localStorage.getItem(OPK)||'null');if(savedOp){if(!savedOp.actionId||!savedOp.op)throw Error('pending');OP.pending=savedOp}}catch(e){OP.storageError=true;OP.error='Не удалось прочитать незавершённое сохранение. Нужна сверка памяти телефона; новые записи не отправляются'}
+function opFormVisibility(){var type=$('op-type'),turn=$('op-turn');[['op-min',type&&type.value==='unknown'],['op-max',!type||type.value!=='discussed'],['op-wait',!turn||turn.value!=='client']].forEach(function(a){var el=$(a[0]);if(el)el.parentElement.hidden=!!a[1]})}
+document.addEventListener('input',function(e){if(e.target.closest('#op-form')&&e.target.id){OP.formValues=OP.formValues||{};OP.formValues[e.target.id]=e.target.value}});
+document.addEventListener('change',function(e){if(e.target.closest('#op-form')){OP.formValues=OP.formValues||{};if(e.target.id)OP.formValues[e.target.id]=e.target.value;opFormVisibility()}});
+var opOriginalRender=render;render=function(){opOriginalRender();opFormVisibility()};
+opLoad(false);
+
 draw(true);tgBack()}
 
 (function(){var q=new URLSearchParams(location.search),t=q.get('t'),a=q.get('a');
@@ -818,7 +960,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261101-consistency1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261104-opportunities1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
