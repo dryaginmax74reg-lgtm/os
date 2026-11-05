@@ -282,6 +282,11 @@ body.deep .bar5{transform:translateY(160%)}
 .care-check{display:inline-flex;align-items:center;gap:4px;min-height:32px;padding:4px 6px;font-size:.75rem;font-weight:800;color:#0b0b0b}
 .care-check input{margin:0;width:17px;height:17px;accent-color:#0b0b0b}
 .care-check input:not(:checked)+span{display:none}
+
+.lead-file{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.lead-company{font-size:1rem;font-weight:700;overflow-wrap:anywhere}
+.lead-dials{display:flex;flex-wrap:wrap;gap:8px}
+.lead-dial{flex:1 1 105px;display:flex;justify-content:center;align-items:center;gap:7px;text-decoration:none;min-height:48px}
 </style></head><body>
 <div id="scr"><div class="app"><section id="app"></section></div></div>
 <div class="dock"><nav class="bar5" id="nav" aria-label="Разделы"></nav></div>
@@ -387,44 +392,92 @@ return '<div><h1>Разбор недели</h1><p class="sub">'+dstr(mon).slice(
 /* ===== Лиды: быстрый прозвон из Excel. Телефоны хранятся только на этом устройстве ===== */
 var LDK='v67ld';
 function ldGet(){try{return JSON.parse(localStorage.getItem(LDK)||'[]')}catch(e){return[]}}
-function ldSet(a){try{localStorage.setItem(LDK,JSON.stringify(a))}catch(e){}}
+function ldSet(a){try{localStorage.setItem(LDK,JSON.stringify(a));return true}catch(e){toast('Не удалось сохранить список на этом устройстве',true);return false}}
 function nph(r){var x=String(r==null?'':r).replace(/[^\d+]/g,'');if(!x)return '';if(x.charAt(0)==='+')return x;if(x.length===11&&x.charAt(0)==='8')return '+7'+x.slice(1);if(x.length===11&&x.charAt(0)==='7')return '+'+x;if(x.length===10)return '+7'+x;return '+'+x}
 function ldNm(x){return String(x||'').toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim()}
 function ldRevive(a){var t=Date.now(),ch=false;a.forEach(function(x){if(x.s==='ref'&&x.u&&x.u<=t){x.s='new';x.u=0;ch=true}});if(ch)ldSet(a);return a}
-function ldCur(a){for(var i=0;i<a.length;i++)if(a[i].s==='new'||a[i].s==='nd'||a[i].s==='un')return i;return -1}
+function ldCur(a){
+ var now=Date.now();
+ var due=a.findIndex(function(x){return x.s==='callback' && x.u<=now;});
+ if(due>=0)return due;
+ for(var i=0;i<a.length;i++)if(a[i].s==='new'||a[i].s==='nd'||a[i].s==='un')return i;return -1}
 function ldS(){var a=ldRevive(ldGet());
 var h='<div class="hd"><div><div class="sub" style="margin:0 0 4px">Быстрый прозвон</div><h1>Лиды</h1></div></div>';
-if(!a.length)return h+'<p class="note">Загрузи файл Excel или CSV: в первом столбце полное ФИО, во втором телефон. Телефоны остаются только на этом телефоне, в таблицу они не попадают.</p><label class="btn main" style="display:flex;justify-content:center;cursor:pointer">Загрузить файл<input type="file" accept=".xlsx,.xls,.csv,.txt" style="display:none" onchange="window.__ldFile(this)"></label>';
+if(!a.length)return h+'<p class="note">Загрузи файл Excel или CSV: с заголовками «Компания», «ФИО», «Номер 1», «Номер 2», «Номер 3». Файл и номера остаются на этом устройстве.</p><label class="btn main" style="position:relative;display:flex;justify-content:center;cursor:pointer">Загрузить файл<input aria-label="Загрузить Excel или CSV" type="file" accept=".xlsx,.xls,.csv,.txt" class="lead-file" onchange="window.__ldFile(this)"></label>';
 var i=ldCur(a),done=a.filter(function(x){return x.s==='int'||x.s==='ref'}).length,ref=a.filter(function(x){return x.s==='ref'}).length,intr=a.filter(function(x){return x.s==='int'}).length;
 h+='<div class="three"><div class="stat"><span class="lab">Обработано</span><b>'+done+'/'+a.length+'</b></div><div class="stat" style="background:var(--c-grn)"><span class="lab">Интерес</span><b>'+intr+'</b></div><div class="stat" style="background:var(--c-red)"><span class="lab">Отказ</span><b>'+ref+'</b></div></div>';
-if(i<0)return h+'<div class="empty">Очередь пройдена. Отказавшие вернутся через 90 дней.</div><button class="btn" data-ld="reset">Загрузить другой файл</button>';
-var c=a[i],ph=nph(c.p),dg=ph.replace(/\D/g,'');
-h+='<div class="stat" style="margin:12px 0;padding:22px 18px;gap:10px;background:var(--c-blu)"><span class="lab">'+(c.s==='nd'?'Не дозвонился · попыток '+(c.a||1):c.s==='un'?'Было неудобно · перезвон':'Следующий')+'</span><b style="font-size:2rem;line-height:1.05;letter-spacing:-1px">'+esc(c.n)+'</b><span style="font-weight:700">'+esc(ph)+'</span></div>';
-h+='<a class="btn main" href="tel:'+ph+'" style="display:flex;justify-content:center;align-items:center;gap:10px;text-decoration:none;color:#0B0B0B">'+svg('call',22)+'Позвонить</a>';
-h+='<a class="btn" href="https://t.me/+'+dg+'" target="_blank" rel="noopener" style="display:flex;justify-content:center;text-decoration:none;margin-top:8px;color:inherit">Написать в Telegram</a>';
+var scheduled=a.filter(function(x){return x.s==='callback' && x.u>Date.now();}).sort(function(x,y){return x.u-y.u;});
+if(scheduled.length)h+='<details class="box"><summary>Назначенные перезвоны · '+scheduled.length+'</summary>'+scheduled.map(function(x){return '<p><b>'+esc(x.n)+'</b> · '+esc(x.company||'')+'<br>'+esc(new Date(x.u).toLocaleString('ru-RU'))+'</p>';}).join('')+'</details>';
+if(i<0)return h+'<div class="empty">На сейчас лидов нет. Отказавшие вернутся через 90 дней.</div><button class="btn" data-ld="reset">Загрузить другой файл</button>';
+var c=a[i];
+h+='<div class="stat" style="margin:12px 0;padding:22px 18px;gap:10px;background:var(--c-blu)"><span class="lab">'+(c.s==='callback'?'Пора перезвонить':c.s==='nd'?'Не дозвонился · попыток '+(c.a||1):c.s==='un'?'Было неудобно · перезвон':'Следующий')+'</span><b style="font-size:2rem;line-height:1.05;letter-spacing:-1px">'+esc(c.n)+'</b>'+(c.company?'<span class="lead-company">'+esc(c.company)+'</span>':'')+'</div>';
+h+='<div class="lead-dials">'+leadButtons(c)+'</div>';
 h+='<div class="fl">Итог разговора</div><div class="opts"><button class="opt" data-ld="int">🔥 Интерес</button><button class="opt" data-ld="un">📵 Неудобно</button><button class="opt" data-ld="nd">Не дозвонился</button><button class="opt danger" data-ld="ref">Отказ</button></div>';
+h+='<details class="box"><summary>Назначен звонок</summary><label class="op-field">Дата<input id="ld-callback-date" type="date"></label><label class="op-field">Время<input id="ld-callback-time" type="time"></label><button class="btn main" data-ld="callback">Сохранить перезвон</button></details>';
 h+='<p class="note">Интерес: заведу клиента и поставлю шаг. Неудобно и отказ идут в журнал и в счётчик. Не дозвонился нигде не пишется. Отказ вернётся через 90 дней.</p><button class="btn" data-ld="reset" style="margin-top:8px">Загрузить другой файл</button>';
 return h}
-function ldParse(rows){var base=new Set(P.map(function(c){return ldNm(c.fio)})),seen={},out=[],inb=0,bad=0;
-rows.forEach(function(r,ri){if(!String(r[0]||'').trim()&&!String(r[1]||'').trim())return;var n=String(r[0]||'').replace(/\s+/g,' ').trim(),p=nph(r[1]);if(!n||p.replace(/\D/g,'').length<10){if(ri>0||/\d/.test(String(r[1]||'')))bad++;return}var k=ldNm(n);if(base.has(k)){inb++;return}if(seen[k])return;seen[k]=1;out.push({n:n,p:p,s:'new',a:0,u:0})});
-return {out:out,inb:inb,bad:bad}}
-function ldLoad(rows){var r=ldParse(rows);if(!r.out.length){toast('Не нашёл ни одной строки: нужны 2 столбца, ФИО и телефон',true);return}
-ldSet(r.out);hn('success');toast('Загружено '+r.out.length+(r.inb?' · уже в базе: '+r.inb:'')+(r.bad?' · пропущено: '+r.bad:''));draw(true)}
+function leadPhone(value) {
+  var raw = String(value == null ? '' : value).trim();
+  if (!/^[+\d\s().-]+$/.test(raw) || /\+.*\+/.test(raw) || raw.slice(1).includes('+')) return '';
+  var phone = nph(raw);
+  return /^\+[1-9]\d{9,14}$/.test(phone) ? phone : '';
+}
+function ldParse(rows) {
+  var expected = ['компания','фио','номер 1','номер 2','номер 3'];
+  var header = rows.findIndex(function(row) {
+    return expected.every(function(name){return row.some(function(cell){return ldNm(cell)===name;});});
+  });
+  var out=[], bad=0, duplicates=0, seen=new Set();
+  var base=new Set(P.map(function(c){return ldNm(c.fio);}));
+  var cols=header<0?null:expected.map(function(name){return rows[header].findIndex(function(cell){return ldNm(cell)===name;});});
+  var inb=0;
+  rows.slice(header+1).forEach(function(row){
+    if (!row.some(function(cell){return String(cell==null?'':cell).trim();})) return;
+    var name=String(row[cols?cols[1]:0]||'').trim();
+    var company=cols?String(row[cols[0]]||'').trim():'';
+    var phones=(cols?cols.slice(2):[1]).map(function(i){return leadPhone(row[i]);});
+    var used=new Set();
+    phones=phones.map(function(phone){if(!phone||used.has(phone))return '';used.add(phone);return phone;});
+    if (!name || !used.size) {bad++;return;}
+    if (!cols && base.has(ldNm(name))) {inb++;return;}
+    var key=JSON.stringify([ldNm(name),ldNm(company),Array.from(used).sort()]);
+    if (seen.has(key)) {duplicates++;return;}
+    seen.add(key);
+    out.push({n:name,company:company,phones:phones,s:'new',a:0,u:0});
+  });
+  return {out:out,bad:bad,inb:inb,duplicates:duplicates,matched:!!cols};
+}
+function leadButtons(lead) {
+  return (Array.isArray(lead.phones)?lead.phones:[lead.p]).map(function(value,i){
+    var phone=leadPhone(value);
+    if(!phone)return '';
+    return '<a class="btn main lead-dial" href="tel:'+esc(phone)+'">'+svg('call',22)+'Позвонить '+(i+1)+'</a>';
+  }).join('');
+}
+function ldLoad(rows){var r=ldParse(rows);if(!r.out.length){toast('Не нашёл контактов. Проверь заголовки, ФИО и номера.',true);return}
+if(!ldSet(r.out))return;hn('success');toast('Загружено '+r.out.length+(r.inb?' · уже в базе: '+r.inb:'')+(r.bad?' · пропущено: '+r.bad:'')+(r.duplicates?' · повторы: '+r.duplicates:''));draw(true)}
 window.__ldFile=function(inp){var f=inp.files&&inp.files[0];if(!f)return;var csv=/\.(csv|txt)$/i.test(f.name),rd=new FileReader();
 rd.onerror=function(){toast('Файл не открылся',true)};
-rd.onload=function(){try{if(csv){var tx=String(rd.result).replace(/^﻿/,'');ldLoad(tx.split(/\r?\n/).map(function(l){var m=l.split(/[;\t,]/);return [m[0],m.slice(1).join('')]}));return}
-var go2=function(){try{var wb=XLSX.read(rd.result,{type:'array'});var ws=wb.Sheets[wb.SheetNames[0]];var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});ldLoad(rows)}catch(e){toast('Не смог прочитать Excel',true)}};
+rd.onload=function(){try{var go2=function(){try{var wb=XLSX.read(rd.result,{type:csv?'string':'array'});var ws=wb.Sheets[wb.SheetNames[0]];var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});ldLoad(rows)}catch(e){toast('Не смог прочитать Excel',true)}};
 if(window.XLSX){go2();return}var sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';sc.onload=go2;sc.onerror=function(){toast('Нужен интернет для чтения Excel. Сохрани файл как CSV',true)};document.head.appendChild(sc)}catch(e){toast('Не смог прочитать файл',true)}};
 if(csv)rd.readAsText(f);else rd.readAsArrayBuffer(f);inp.value=''};
 function ldAct(k){var a=ldRevive(ldGet());if(k==='reset'){if(!confirm('Убрать загруженный список с этого телефона?'))return;ldSet([]);draw(true);return}
 var i=ldCur(a);if(i<0)return;var c=a[i];hp('medium');
+if(k==='callback'){
+ var date=$('ld-callback-date').value,time=$('ld-callback-time').value;
+ var when=date&&time?new Date(date+'T'+time).getTime():NaN;
+ if(!Number.isFinite(when)||when<=Date.now()){toast('Выбери будущие дату и время',true);return;}
+ c.s='callback';c.u=when;
+ if(!ldSet(a))return;
+ toast('Перезвон сохранён на этом устройстве');draw(true);return;
+}
 if(k==='nd'){c.a=(c.a||0)+1;c.s='nd';a.splice(i,1);a.push(c);ldSet(a);draw(true);return}
-if(k==='int'){W={kind:'new',fio:c.n,role:'',city:'СПБ',src:'Холодный звонок',note:'',lead:1};nrender(true);return}
+if(k==='int'){W={kind:'new',fio:c.n,role:'',city:'СПБ',src:'Холодный звонок',note:c.company?'Компания: '+c.company:'',lead:1};nrender(true);return}
 var p={kind:'free',fio:c.n,id:'',stage:'',out:k==='ref'?'r':'u',dk:null,tm:null,ndk:null,ntm:'11:00',type:'Звонок',cm:'Лиды'};
 if(!qEnqueue(p))return;var ae=optAct(p);LA=ae;qFlush();
 if(k==='ref'){c.s='ref';c.u=Date.now()+90*86400000;ldSet(a)}else{c.s='un';a.splice(i,1);a.push(c);ldSet(a)}
 toast(k==='ref'?'Отказ записан, вернётся через 90 дней':'Записано в журнал');draw(true)}
-function ldDoneInt(nm){var a=ldGet();for(var i=0;i<a.length;i++)if(ldNm(a[i].n)===ldNm(nm)){a[i].s='int';break}ldSet(a);tab='ld';draw(true)}
+function ldDoneInt(nm){var a=ldGet();var i=ldCur(a);if(i>=0&&ldNm(a[i].n)===ldNm(nm))a[i].s='int';ldSet(a);tab='ld';draw(true)}
 
 
 /* без базы: отказ -> возврат через 90 дн., «Неудобно» -> через 2 рабочих дня */
@@ -1071,7 +1124,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261105-mailing-filters1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261105-leads-excel1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
