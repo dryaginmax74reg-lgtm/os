@@ -407,9 +407,10 @@ if(!a.length)return h+'<p class="note">Загрузи файл Excel или CSV:
 var i=ldCur(a),done=a.filter(function(x){return x.s==='int'||x.s==='ref'}).length,ref=a.filter(function(x){return x.s==='ref'}).length,intr=a.filter(function(x){return x.s==='int'}).length;
 h+='<div class="three"><div class="stat"><span class="lab">Обработано</span><b>'+done+'/'+a.length+'</b></div><div class="stat" style="background:var(--c-grn)"><span class="lab">Интерес</span><b>'+intr+'</b></div><div class="stat" style="background:var(--c-red)"><span class="lab">Отказ</span><b>'+ref+'</b></div></div>';
 var scheduled=a.filter(function(x){return x.s==='callback' && x.u>Date.now();}).sort(function(x,y){return x.u-y.u;});
-if(scheduled.length)h+='<details class="box"><summary>Назначенные перезвоны · '+scheduled.length+'</summary>'+scheduled.map(function(x){return '<p><b>'+esc(x.n)+'</b> · '+esc(x.company||'')+'<br>'+esc(new Date(x.u).toLocaleString('ru-RU'))+'</p>';}).join('')+'</details>';
+if(scheduled.length)h+='<details class="box"><summary>Назначенные перезвоны · '+scheduled.length+'</summary>'+scheduled.map(function(x){return '<p><b>'+esc(x.n)+'</b> · '+esc(x.company||'')+'<br>'+esc(new Date(x.u).toLocaleString('ru-RU'))+(x.callbackId?' <button class="chip" data-ld="cancel|'+esc(x.callbackId)+'">Отменить</button>':'')+'</p>';}).join('')+'</details>';
 if(i<0)return h+'<div class="empty">На сейчас лидов нет. Отказавшие вернутся через 90 дней.</div><button class="btn" data-ld="reset">Загрузить другой файл</button>';
 var c=a[i];
+if(c.callbackId&&(c.callbackPendingAt||c.s==='callback')) h+='<button class="btn" data-ld="cancel|'+esc(c.callbackId)+'">Отменить напоминание</button>';
 h+='<div class="stat" style="margin:12px 0;padding:22px 18px;gap:10px;background:var(--c-blu)"><span class="lab">'+(c.s==='callback'?'Пора перезвонить':c.s==='nd'?'Не дозвонился · попыток '+(c.a||1):c.s==='un'?'Было неудобно · перезвон':'Следующий')+'</span><b style="font-size:2rem;line-height:1.05;letter-spacing:-1px">'+esc(c.n)+'</b>'+(c.company?'<span class="lead-company">'+esc(c.company)+'</span>':'')+'</div>';
 h+='<div class="lead-dials">'+leadButtons(c)+'</div>';
 h+='<div class="fl">Итог разговора</div><div class="opts"><button class="opt" data-ld="int">🔥 Интерес</button><button class="opt" data-ld="un">📵 Неудобно</button><button class="opt" data-ld="nd">Не дозвонился</button><button class="opt danger" data-ld="ref">Отказ</button></div>';
@@ -461,15 +462,46 @@ rd.onerror=function(){toast('Файл не открылся',true)};
 rd.onload=function(){try{var go2=function(){try{var wb=XLSX.read(rd.result,{type:csv?'string':'array'});var ws=wb.Sheets[wb.SheetNames[0]];var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});ldLoad(rows)}catch(e){toast('Не смог прочитать Excel',true)}};
 if(window.XLSX){go2();return}var sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';sc.onload=go2;sc.onerror=function(){toast('Нужен интернет для чтения Excel. Сохрани файл как CSV',true)};document.head.appendChild(sc)}catch(e){toast('Не смог прочитать файл',true)}};
 if(csv)rd.readAsText(f);else rd.readAsArrayBuffer(f);inp.value=''};
-function ldAct(k){var a=ldRevive(ldGet());if(k==='reset'){if(!confirm('Убрать загруженный список с этого телефона?'))return;ldSet([]);draw(true);return}
+var leadCallbackBusy=false;
+function ldAct(k){if(leadCallbackBusy)return;var a=ldRevive(ldGet());
+if(k.indexOf('cancel|')===0){
+ var id=k.slice(7);
+ if(!a.some(function(x){return x.callbackId===id&&(x.s==='callback'||x.callbackPendingAt);}))return;
+ leadCallbackBusy=true;
+ call('leadReminderCancel',[TOKEN,id],function(result){
+   leadCallbackBusy=false;
+   if(!result||!result.ok){toast(result&&result.msg||'Отмена не подтверждена',true);return;}
+   var list=ldGet(), item=list.find(function(x){return x.callbackId===id;});
+   if(item){item.s='new';item.u=0;delete item.callbackId;delete item.callbackPendingAt;ldSet(list);}
+   draw(true);
+ },function(msg){leadCallbackBusy=false;toast(msg||'Отмена не подтверждена',true);});
+ return;
+}
+if(k==='reset'){
+ if(a.some(function(x){return x.callbackId&&(x.callbackPendingAt||x.s==='callback'&&x.u>Date.now());})){
+   toast('Сначала отмени будущие перезвоны в списке',true);return;
+ }if(!confirm('Убрать загруженный список с этого телефона?'))return;ldSet([]);draw(true);return}
 var i=ldCur(a);if(i<0)return;var c=a[i];hp('medium');
 if(k==='callback'){
  var date=$('ld-callback-date').value,time=$('ld-callback-time').value;
  var when=date&&time?new Date(date+'T'+time).getTime():NaN;
  if(!Number.isFinite(when)||when<=Date.now()){toast('Выбери будущие дату и время',true);return;}
- c.s='callback';c.u=when;
+ if(leadCallbackBusy)return;
+ if(!c.callbackId)c.callbackId='lead-'+Date.now()+'-'+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
+ c.callbackPendingAt=when;
  if(!ldSet(a))return;
- toast('Перезвон сохранён на этом устройстве');draw(true);return;
+ leadCallbackBusy=true;
+ function fail(msg){leadCallbackBusy=false;toast(msg||'Напоминание не подтверждено. Повтори сохранение с тем же временем.',true);}
+ call('leadReminderSave',[TOKEN,c.callbackId,c.n,c.company||'',when],function(result){
+   leadCallbackBusy=false;
+   if(!result||!result.ok){fail(result&&result.msg);return;}
+   var current=ldGet(), lead=current.find(function(item){return item.callbackId===c.callbackId;});
+   if(!lead){toast('Напоминание сохранено в боте. Список на устройстве изменился.',true);return;}
+   lead.s='callback';lead.u=when;delete lead.callbackPendingAt;
+   if(ldSet(current))toast('Перезвон сохранён · напомню в Telegram');
+   draw(true);
+ },fail);
+ return;
 }
 if(k==='nd'){c.a=(c.a||0)+1;c.s='nd';a.splice(i,1);a.push(c);ldSet(a);draw(true);return}
 if(k==='int'){W={kind:'new',fio:c.n,role:'',city:'СПБ',src:'Холодный звонок',note:c.company?'Компания: '+c.company:'',lead:1};nrender(true);return}
@@ -1124,7 +1156,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261105-leads-excel1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261105-leads-reminders1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
