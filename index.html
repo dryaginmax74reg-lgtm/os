@@ -403,19 +403,23 @@ function ldCur(a){
  for(var i=0;i<a.length;i++)if(a[i].s==='new'||a[i].s==='nd'||a[i].s==='un')return i;return -1}
 function ldS(){var a=ldRevive(ldGet());
 var h='<div class="hd"><div><div class="sub" style="margin:0 0 4px">Быстрый прозвон</div><h1>Лиды</h1></div></div>';
-if(!a.length)return h+'<p class="note">Загрузи файл Excel или CSV: с заголовками «Компания», «ФИО», «Номер 1», «Номер 2», «Номер 3». Файл и номера остаются на этом устройстве.</p><label class="btn main" style="position:relative;display:flex;justify-content:center;cursor:pointer">Загрузить файл<input aria-label="Загрузить Excel или CSV" type="file" accept=".xlsx,.xls,.csv,.txt" class="lead-file" onchange="window.__ldFile(this)"></label>';
+var upload='<label class="btn '+(a.length?'':'main')+'" style="position:relative;display:flex;justify-content:center;cursor:pointer">'+
+  (a.length?'Добавить файл':'Загрузить файл')+'<input aria-label="'+(a.length?'Добавить Excel или CSV':'Загрузить Excel или CSV')+'" type="file" accept=".xlsx,.xls,.csv,.txt" class="lead-file" onchange="window.__ldFile(this)"></label>';
+if(!a.length)return h+'<p class="note">Загрузи файл Excel или CSV: с заголовками «Компания», «ФИО», «Номер 1», «Номер 2», «Номер 3». Файл и номера остаются на этом устройстве.</p>'+upload;
 var i=ldCur(a),done=a.filter(function(x){return x.s==='int'||x.s==='ref'}).length,ref=a.filter(function(x){return x.s==='ref'}).length,intr=a.filter(function(x){return x.s==='int'}).length;
 h+='<div class="three"><div class="stat"><span class="lab">Обработано</span><b>'+done+'/'+a.length+'</b></div><div class="stat" style="background:var(--c-grn)"><span class="lab">Интерес</span><b>'+intr+'</b></div><div class="stat" style="background:var(--c-red)"><span class="lab">Отказ</span><b>'+ref+'</b></div></div>';
+h+='<div style="margin:12px 0">'+upload+'</div>';
+var clear='<details class="box"><summary>Управление списком</summary><button class="btn" data-ld="reset">Очистить список</button></details>';
 var scheduled=a.filter(function(x){return x.s==='callback' && x.u>Date.now();}).sort(function(x,y){return x.u-y.u;});
 if(scheduled.length)h+='<details class="box"><summary>Назначенные перезвоны · '+scheduled.length+'</summary>'+scheduled.map(function(x){return '<p><b>'+esc(x.n)+'</b> · '+esc(x.company||'')+'<br>'+esc(new Date(x.u).toLocaleString('ru-RU'))+(x.callbackId?' <button class="chip" data-ld="cancel|'+esc(x.callbackId)+'">Отменить</button>':'')+'</p>';}).join('')+'</details>';
-if(i<0)return h+'<div class="empty">На сейчас лидов нет. Отказавшие вернутся через 90 дней.</div><button class="btn" data-ld="reset">Загрузить другой файл</button>';
+if(i<0)return h+'<div class="empty">На сейчас лидов нет. Отказавшие вернутся через 90 дней.</div>'+clear;
 var c=a[i];
 if(c.callbackId&&(c.callbackPendingAt||c.s==='callback')) h+='<button class="btn" data-ld="cancel|'+esc(c.callbackId)+'">Отменить напоминание</button>';
 h+='<div class="stat" style="margin:12px 0;padding:22px 18px;gap:10px;background:var(--c-blu)"><span class="lab">'+(c.s==='callback'?'Пора перезвонить':c.s==='nd'?'Не дозвонился · попыток '+(c.a||1):c.s==='un'?'Было неудобно · перезвон':'Следующий')+'</span><b style="font-size:2rem;line-height:1.05;letter-spacing:-1px">'+esc(c.n)+'</b>'+(c.company?'<span class="lead-company">'+esc(c.company)+'</span>':'')+'</div>';
 h+=leadButtons(c);
 h+='<div class="fl">Итог разговора</div><div class="opts"><button class="opt" data-ld="int">🔥 Интерес</button><button class="opt" data-ld="un">📵 Неудобно</button><button class="opt" data-ld="nd">Не дозвонился</button><button class="opt danger" data-ld="ref">Отказ</button></div>';
 h+='<details class="box"><summary>Назначен звонок</summary><label class="op-field">Дата<input id="ld-callback-date" type="date"></label><label class="op-field">Время<input id="ld-callback-time" type="time"></label><button class="btn main" data-ld="callback">Сохранить перезвон</button></details>';
-h+='<p class="note">Интерес: заведу клиента и поставлю шаг. Неудобно и отказ идут в журнал и в счётчик. Не дозвонился нигде не пишется. Отказ вернётся через 90 дней.</p><button class="btn" data-ld="reset" style="margin-top:8px">Загрузить другой файл</button>';
+h+='<p class="note">Интерес: заведу клиента и поставлю шаг. Неудобно и отказ идут в журнал и в счётчик. Не дозвонился нигде не пишется. Отказ вернётся через 90 дней.</p>'+clear;
 return h}
 function leadPhone(value) {
   var raw = String(value == null ? '' : value).trim();
@@ -423,12 +427,16 @@ function leadPhone(value) {
   var phone = nph(raw);
   return /^\+[1-9]\d{9,14}$/.test(phone) ? phone : '';
 }
-function ldParse(rows) {
+function leadImportKey(lead) {
+  var phones=leadNumbers(lead).map(function(number){return number.phone;});
+  return JSON.stringify([ldNm(lead.n),ldNm(lead.company),Array.from(new Set(phones)).sort()]);
+}
+function ldParse(rows, existing) {
   var expected = ['компания','фио','номер 1','номер 2','номер 3'];
   var header = rows.findIndex(function(row) {
     return expected.every(function(name){return row.some(function(cell){return ldNm(cell)===name;});});
   });
-  var out=[], bad=0, duplicates=0, seen=new Set();
+  var out=[], bad=0, duplicates=0, seen=new Set(existing.map(leadImportKey));
   var base=new Set(P.map(function(c){return ldNm(c.fio);}));
   var cols=header<0?null:expected.map(function(name){return rows[header].findIndex(function(cell){return ldNm(cell)===name;});});
   var inb=0;
@@ -441,10 +449,11 @@ function ldParse(rows) {
     phones=phones.map(function(phone){if(!phone||used.has(phone))return '';used.add(phone);return phone;});
     if (!name || !used.size) {bad++;return;}
     if (!cols && base.has(ldNm(name))) {inb++;return;}
-    var key=JSON.stringify([ldNm(name),ldNm(company),Array.from(used).sort()]);
+    var lead={n:name,company:company,phones:phones,s:'new',a:0,u:0};
+    var key=leadImportKey(lead);
     if (seen.has(key)) {duplicates++;return;}
     seen.add(key);
-    out.push({n:name,company:company,phones:phones,s:'new',a:0,u:0});
+    out.push(lead);
   });
   return {out:out,bad:bad,inb:inb,duplicates:duplicates,matched:!!cols};
 }
@@ -467,8 +476,18 @@ function leadButtons(lead) {
     }).join('')+'</div></details>':'';
   return '<div class="lead-dials">'+buttons+'</div>'+chooser;
 }
-function ldLoad(rows){var r=ldParse(rows);if(!r.out.length){toast('Не нашёл контактов. Проверь заголовки, ФИО и номера.',true);return}
-if(!ldSet(r.out))return;hn('success');toast('Загружено '+r.out.length+(r.inb?' · уже в базе: '+r.inb:'')+(r.bad?' · пропущено: '+r.bad:'')+(r.duplicates?' · повторы: '+r.duplicates:''));draw(true)}
+function ldLoad(rows){
+  var existing=ldGet(), result=ldParse(rows,existing);
+  var skipped=(result.inb?' · уже в базе: '+result.inb:'')+
+    (result.bad?' · пропущено: '+result.bad:'')+(result.duplicates?' · повторы: '+result.duplicates:'');
+  if(!result.out.length){
+    toast((skipped?'Добавлено 0':'Не нашёл контактов. Проверь заголовки, ФИО и номера.')+skipped,true);
+    return;
+  }
+  var combined=existing.concat(result.out);
+  if(!ldSet(combined))return;
+  hn('success');toast('Добавлено '+result.out.length+' · всего '+combined.length+skipped);draw(true);
+}
 window.__ldFile=function(inp){var f=inp.files&&inp.files[0];if(!f)return;var csv=/\.(csv|txt)$/i.test(f.name),rd=new FileReader();
 rd.onerror=function(){toast('Файл не открылся',true)};
 rd.onload=function(){try{var go2=function(){try{var wb=XLSX.read(rd.result,{type:csv?'string':'array'});var ws=wb.Sheets[wb.SheetNames[0]];var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});ldLoad(rows)}catch(e){toast('Не смог прочитать Excel',true)}};
@@ -1175,7 +1194,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261107-leads-preferred1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261107-leads-append1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
