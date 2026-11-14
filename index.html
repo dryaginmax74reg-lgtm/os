@@ -390,12 +390,18 @@ body.deep .bar5{transform:translateY(160%)}
 .focus-contact{display:flex;flex-wrap:wrap;gap:7px}
 .focus-contact .btn{flex:1 1 125px;width:auto;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 6px;text-decoration:none}
 .focus-contact .btn svg{width:18px;height:18px;flex:none}
-.focus-call{background:#C7E8D3;color:#0b0b0b}.focus-tg{background:#C9DDFF;color:#0b0b0b}
+.focus-call,.focus-log{background:#C7E8D3;color:#0b0b0b}.focus-tg{background:#C9DDFF;color:#0b0b0b}
 .focus-transfer .lab{display:block;margin-bottom:5px}
 .focus-dates{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 .focus-dates .btn{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;min-height:48px;padding:4px 2px;font-size:.79rem}
 .focus-dates .btn span{font-size:.69rem;color:var(--mut)}
-.focus-next{background:var(--c-yel,#FFE533);color:#0b0b0b}.focus-next .lab{color:inherit}.focus-next b{font-size:1.5rem;overflow-wrap:anywhere}.focus-done{background:var(--c-grn);color:#0b0b0b}
+.focus-next{background:var(--c-yel,#FFE533);color:#0b0b0b}.focus-next .lab{color:inherit}
+.focus-next{border-radius:0 24px 0 0;box-shadow:3px 3px 0 var(--line)}
+.focus-groups span.focus-timed,.focus-next.focus-timed{background:#CDE2FF;color:#0b0b0b}
+.focus-groups span.focus-overdue,.focus-next.focus-overdue{background:#FFD6CB;color:#0b0b0b}
+.focus-groups span.focus-cool,.focus-next.focus-cool{background:#FFE0A0;color:#0b0b0b}
+.focus-dates [data-focus="move|1"]{background:var(--mark);color:#0b0b0b}
+.focus-dates [data-focus="move|1"] span{color:inherit}.focus-next b{font-size:1.5rem;overflow-wrap:anywhere}.focus-done{background:var(--c-grn);color:#0b0b0b}
 .lead-dials{display:flex;flex-wrap:wrap;gap:8px}
 .lead-dial{flex:1 1 105px;display:flex;justify-content:center;align-items:center;gap:7px;text-decoration:none;min-height:48px}
 </style></head><body>
@@ -903,10 +909,10 @@ function focusScreen(){
   h+='<p class="sub">Разобрано '+(total-left)+' из '+total+(review.waiting.length?' · Сохраняется: '+review.waiting.length:'')+'</p>'+
     (failed?'<button class="li today-notice" data-qfo="1"><b>Ошибка записи · '+failed+'</b><span aria-hidden="true">→</span></button>':'')+
     '<div class="focus-groups">'+Object.keys(counts).map(function(key){
-    return '<span>'+esc(key==='timed'?'По времени':focusLabels[key])+' <b>'+counts[key]+'</b></span>';
+    return '<span class="focus-'+key+'">'+esc(key==='timed'?'По времени':focusLabels[key])+' <b>'+counts[key]+'</b></span>';
   }).join('')+'</div>';
   if(next.sync&&next.sync.reminder)return h+'<p class="note">Сохраняю перезвон в Telegram.</p>';
-  h+='<div class="stat focus-next"><span class="lab">'+esc(focusLabels[next.item.group])+'</span><b>'+esc(next.name)+'</b><span>'+esc(next.note||'')+'</span></div>';
+  h+='<div class="stat focus-next focus-'+next.item.group+'"><span class="lab">'+esc(focusLabels[next.item.group])+'</span><b>'+esc(next.name)+'</b><span>'+esc(next.note||'')+'</span></div>';
   if(next.sync)return h+'<p class="note">'+(next.sync.fail?'Таблица отклонила запись. Исправь её, чтобы закрыть шаг.':'Жду подтверждения записи от таблицы.')+'</p>'+
     (next.sync.fail?'<button class="btn" data-qfo="1">Посмотреть ошибку</button>':'<button class="btn" data-qs="1">Отправить запись</button>');
   focusShown=next.item;
@@ -934,8 +940,8 @@ function focusQuick(row){
   var tg=username?'<a class="btn focus-tg" href="'+esc(tgHref(c,username))+'" target="_blank" rel="noopener">'+CB_TG+'Telegram</a>':'<button class="btn" disabled title="Контакт не привязан">Нет Telegram</button>';
   var time=c?c.ntm||'11:00':new Date(row.lead.u).toTimeString().slice(0,5);
   return '<div class="focus-contact">'+phones+tg+'</div><div class="focus-transfer"><div class="lab">Перенести звонок · '+esc(time)+'</div><div class="focus-dates">'+[1,2,3,7].map(function(days){
-    return '<button class="btn" data-focus="move|'+days+'"'+(!c&&leadCallbackBusy?' disabled':'')+'><b>'+(days===7?'Неделя':'+'+days+' дн.')+'</b><span>'+dstr(focusMoveDate(days)).slice(0,5)+'</span></button>';
-  }).join('')+'</div></div><div class="focus-contact">'+(c?'<button class="btn" data-focus="log">Записать звонок</button>':'')+
+    return '<button class="btn" data-focus="move|'+days+'"'+(!c&&leadCallbackBusy?' disabled':'')+'><b>'+(days===7?'Неделя':days===1?'+1 день':'+'+days+' дн.')+'</b><span>'+dstr(focusMoveDate(days)).slice(0,5)+'</span></button>';
+  }).join('')+'</div></div><div class="focus-contact">'+(c?'<button class="btn focus-log" data-focus="log">Записать звонок</button>':'')+
     '<button class="btn" data-focus="next">Открыть '+(c?'карточку':'лида')+'</button></div>';
 }
 function focusMoveDate(days){return stepDate(days,new Date());}
@@ -1629,7 +1635,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261114-focus-fast-search1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261114-focus-colors1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
