@@ -611,12 +611,16 @@ function leadImportKey(lead) {
   var phones=leadNumbers(lead).map(function(number){return number.phone;});
   return JSON.stringify([ldNm(lead.n),ldNm(lead.company),Array.from(new Set(phones)).sort()]);
 }
+function leadImportPhoneKeys(lead) {
+  var name=ldNm(lead.n),company=ldNm(lead.company);
+  return leadNumbers(lead).map(function(number){return JSON.stringify([name,company,number.phone]);});
+}
 function ldParse(rows, existing) {
   var expected = ['компания','фио','номер 1','номер 2','номер 3'];
   var header = rows.findIndex(function(row) {
     return expected.every(function(name){return row.some(function(cell){return ldNm(cell)===name;});});
   });
-  var out=[], bad=0, duplicates=0, seen=new Set(existing.map(leadImportKey));
+  var out=[], bad=0, duplicates=0, seen=new Set(existing.flatMap(leadImportPhoneKeys));
   var base=new Set(P.map(function(c){return ldNm(c.fio);}));
   var cols=header<0?null:expected.map(function(name){return rows[header].findIndex(function(cell){return ldNm(cell)===name;});});
   var inb=0;
@@ -630,9 +634,9 @@ function ldParse(rows, existing) {
     if (!name || !used.size) {bad++;return;}
     if (!cols && base.has(ldNm(name))) {inb++;return;}
     var lead={n:name,company:company,phones:phones,s:'new',a:0,u:0};
-    var key=leadImportKey(lead);
-    if (seen.has(key)) {duplicates++;return;}
-    seen.add(key);
+    var keys=leadImportPhoneKeys(lead);
+    if (keys.some(function(key){return seen.has(key);})) {duplicates++;return;}
+    keys.forEach(function(key){seen.add(key);});
     out.push(lead);
   });
   return {out:out,bad:bad,inb:inb,duplicates:duplicates,matched:!!cols};
@@ -845,20 +849,28 @@ function focusStepAt(c){
 function focusCalls(date){
   return new Set(ACT.filter(function(r){return r.ds===date&&r.t==='Звонок'&&r.o!=='Уже сделано ранее';}).map(function(r){return nrm(r.fio);}));
 }
+function focusTimedItems(now,called){
+  var items=[];
+  P.forEach(function(c){
+    if(c.nt!=='Звонок'||c.stage==='Отказ/Стоп'||called.has(nrm(c.fio)))return;
+    var at=focusStepAt(c);
+    if(at&&at<=now)items.push({key:focusClientKey(c),group:'timed',step:focusStep(c),at:at});
+  });
+  ldGet().forEach(function(lead){
+    if(lead.mark!=='active'&&lead.s==='callback'&&lead.u>0&&lead.u<=now){
+      items.push({key:leadImportKey(lead),group:'timed',lead:true,at:lead.u});
+    }
+  });
+  return items.sort(function(a,b){return a.at-b.at;});
+}
 function focusBuild(date,now){
-  var items=[],seen=new Set(),called=focusCalls(date);
-  function add(c,group,at){
+  var called=focusCalls(date),items=focusTimedItems(now,called);
+  var seen=new Set(items.filter(function(item){return !item.lead;}).map(function(item){return item.key;}));
+  function add(c,group){
     var key=focusClientKey(c);
     if(seen.has(key)||called.has(nrm(c.fio)))return false;
-    seen.add(key);items.push({key:key,group:group,step:focusStep(c),at:at||0});return true;
+    seen.add(key);items.push({key:key,group:group,step:focusStep(c),at:0});return true;
   }
-  P.filter(function(c){var at=focusStepAt(c);return c.nt==='Звонок'&&c.stage!=='Отказ/Стоп'&&at&&at<=now;})
-    .sort(function(a,b){return focusStepAt(a)-focusStepAt(b);}).forEach(function(c){add(c,'timed',focusStepAt(c));});
-  ldGet().filter(function(lead){return lead.mark!=='active'&&lead.s==='callback'&&lead.u>0&&lead.u<=now;})
-    .sort(function(a,b){return a.u-b.u;}).forEach(function(lead){
-      items.push({key:leadImportKey(lead),group:'timed',lead:true,at:lead.u});
-    });
-  items.sort(function(a,b){return a.at-b.at;});
   [['ov','overdue',5],['cool','cool',3]].forEach(function(group){
     var count=0;pass(group[0]).slice().sort(queueOrder).some(function(c){
       if(c.nt!=='Встреча'&&add(c,group[1]))count++;
@@ -872,9 +884,24 @@ function focusState(pin){
   if(!saved||saved.date!==date){
     try{saved=JSON.parse(localStorage.getItem(focusKey)||'null');}catch(e){saved=null;}
   }
-  if(saved&&saved.date===date&&Array.isArray(saved.items))return saved;
-  var plan=focusBuild(date,now);
-  if(pin){
+  var plan;
+  if(saved&&saved.date===date&&Array.isArray(saved.items)){
+    function key(item){return item.lead?'lead:'+item.key:item.key;}
+    var items=new Map(saved.items.map(function(item){return [key(item),item];}));
+    var changed=false;
+    focusTimedItems(now,focusCalls(date)).forEach(function(item){
+      var prior=items.get(key(item));
+      if(prior&&prior.group==='timed'&&prior.at===item.at&&prior.step===item.step)return;
+      items.set(key(item),item);changed=true;
+    });
+    plan=saved;
+    if(changed){
+      var rows=Array.from(items.values());
+      var timed=rows.filter(function(item){return item.group==='timed';}).sort(function(a,b){return a.at-b.at;});
+      plan={date:date,items:timed.concat(rows.filter(function(item){return item.group!=='timed';}))};
+    }
+  }else plan=focusBuild(date,now);
+  if(pin&&plan!==focusMemory){
     focusMemory=plan;
     try{localStorage.setItem(focusKey,JSON.stringify(plan));}catch(e){}
   }
@@ -892,14 +919,16 @@ function focusReview(pin){
     var c=P.find(function(client){return focusClientKey(client)===item.key;});
     if(!c)return {item:item,done:true};
     var sync=pending.find(function(it){return it.p&&(it.p.id&&c.id?String(it.p.id)===String(c.id):it.p.fio===c.fio);});
-    var done=c.stage==='Отказ/Стоп'||called.has(nrm(c.fio))||focusStep(c)!==item.step&&focusStepAt(c)>Date.now();
+    var changed=focusStep(c)!==item.step;
+    var done=c.stage==='Отказ/Стоп'||called.has(nrm(c.fio))||
+      changed&&(item.group==='timed'||focusStepAt(c)>Date.now());
     return {item:item,client:c,name:c.fio,note:[c.nd,c.ntm,c.stage].filter(Boolean).join(' · '),done:!sync&&done,sync:sync};
   });
   var left=rows.filter(function(row){return !row.done;});
   return {rows:rows,left:left,waiting:left.filter(function(row){return row.sync&&!row.sync.fail;}),ready:left.filter(function(row){return !row.sync;})};
 }
 function focusScreen(){
-  var review=focusReview(false),total=review.rows.length,left=review.left.length;
+  var review=focusReview(true),total=review.rows.length,left=review.left.length;
   focusShown=null;
   var h='<div class="hd focus-head"><h1>Утренний разбор</h1><button class="sq" data-to="today" aria-label="Назад на Сегодня">'+svg('back')+'</button></div>';
   if(!left)return h+'<div class="stat focus-done"><b>Разбор завершён</b><span>Можно начинать обычный прозвон.</span></div><button class="btn main" data-cmd="1">Начать прозвон</button>';
@@ -966,6 +995,11 @@ function focusAction(action){
     date.setHours(time.getHours(),time.getMinutes(),0,0);
     ldSaveCallback(ldGet(),row.lead,date.getTime());
   }
+}
+function focusRefresh(){
+  if(tab!=='focus'||document.hidden||sheetOn||cardName)return;
+  var previous=focusMemory;
+  if(focusState(true)!==previous)draw(true);
 }
 function focusGate(){
   if(!focusReview(true).left.length)return false;
@@ -1424,7 +1458,7 @@ $('app').addEventListener('touchmove',function(e){if(!lpT)return;var t=e.touches
 ['touchend','touchcancel'].forEach(function(n){$('app').addEventListener(n,function(){clearTimeout(lpT);lpT=0},{passive:true})});
 document.addEventListener('click',function(e){if(Date.now()-lpF<700){e.stopPropagation();e.preventDefault()}},true);
 $('app').addEventListener('contextmenu',function(e){e.preventDefault()});
-qReapply();qFlush();if(!window.__qh){window.__qh=1;document.addEventListener('visibilitychange',function(){if(!document.hidden)qFlush()});window.addEventListener('online',function(){offUi();qFlush()});window.addEventListener('offline',offUi);offUi();setInterval(qFlush,20000)}
+qReapply();qFlush();if(!window.__qh){window.__qh=1;document.addEventListener('visibilitychange',function(){if(!document.hidden){qFlush();focusRefresh()}});window.addEventListener('online',function(){offUi();qFlush()});window.addEventListener('offline',offUi);offUi();setInterval(function(){qFlush();focusRefresh()},20000)}
 
 if(!window.__gs){window.__gs=1;
 ['gesturestart','gesturechange','gestureend'].forEach(function(n){document.addEventListener(n,function(e){e.preventDefault()},{passive:false})});
@@ -1635,7 +1669,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):''))}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261114-focus-colors1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261115-focus-reliability1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1])}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
