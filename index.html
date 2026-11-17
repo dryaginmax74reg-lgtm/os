@@ -1666,7 +1666,16 @@ document.addEventListener('change',function(e){if(e.target.closest('#op-form')){
 var opOriginalRender=render;render=function(){opOriginalRender();opFormVisibility()};
 opLoad(false);
 
-var pushSetupPending=false;
+var pushSetupPending=false,pushServerSubscribed=false;
+var pushOriginalMore=more;more=function(){return pushOriginalMore().replace('Уведомления о звонках</button>',(pushServerSubscribed?'Уведомления о звонках включены':'Подключить уведомления на этом iPhone')+'</button>');};
+function refreshPushConnection(){
+  call('atonPushConfig',[TOKEN],function(result){
+    pushServerSubscribed=!!(result&&result.ok&&result.subscribed);
+    var button=document.querySelector('[data-push-enable]');
+    if(button)button.textContent=pushServerSubscribed?'Уведомления о звонках включены':'Подключить уведомления на этом iPhone';
+  });
+}
+setTimeout(refreshPushConnection,0);
 function enableAppointmentPush(){
   if(pushSetupPending)return;
   if(!navigator.standalone&&!matchMedia('(display-mode: standalone)').matches){
@@ -1698,7 +1707,8 @@ function enableAppointmentPush(){
           call('atonPushDevice',[TOKEN,subscription.toJSON()],function(result){
             if(!result||!result.ok)return fail(result&&result.msg);
             pushSetupPending=false;
-            toast('Уведомления о звонках включены');
+            refreshPushConnection();
+            toast('Рабочий ATON OS подключён к уведомлениям');
           },fail);
         }).catch(function(){fail();});
     },fail);
@@ -1730,7 +1740,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):'')+location.hash)}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261116-aton-call-push1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1]+location.hash)}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261117-call-push-status1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1]+location.hash)}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
