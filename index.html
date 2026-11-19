@@ -409,6 +409,12 @@ button.focus-next{width:100%;text-align:left;cursor:pointer;font:inherit}
 .focus-next .focus-open{font-weight:800;font-size:.8rem;margin-top:4px}
 .focus-save{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.8rem;overflow-wrap:anywhere}
 .focus-save>span{min-width:0}.focus-save .btn{flex-shrink:0;padding:8px;font-size:.8rem}
+.focus-queue summary{font-weight:800;cursor:pointer;min-height:44px;display:flex;align-items:center}.focus-queue .li{margin-top:8px}.focus-queue .t{flex-wrap:wrap}.focus-queue .t b{overflow-wrap:anywhere;min-width:0}
+/* Approved brighter morning review, scoped to this screen. */
+.focus-groups span.focus-timed{background:#9FC9FF}.focus-groups span.focus-overdue{background:#FF9D7B}.focus-groups span.focus-cool{background:#FFC04A}
+button.focus-next.focus-timed,button.focus-next.focus-overdue,button.focus-next.focus-cool{background:#FFE62E;color:#0B0B0B}
+.focus-contact .focus-call{background:#A2E8B7}.focus-contact .focus-log{background:#66DC97}.focus-contact .focus-tg{background:#9FC9FF}
+.focus-queue{background:#FFF8D7}.focus-queue .focus-queue-timed{background:#D6E8FF}.focus-queue .focus-queue-overdue{background:#FFD1BD}.focus-queue .focus-queue-cool{background:#FFE0A0}
 </style><link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./aton-icon4-180.png">
 </head><body>
@@ -845,7 +851,7 @@ return '<div><h1>Отказ · Стоп</h1><p class="sub">Возврат чер
 var CML=[],CM=null,noVT=0;
 function queueOrder(a,b){var hot=function(c){return ['В переговорах','Открыл счёт','Пополнил'].indexOf(c.stage)>=0?1:['Встреча назначена','Встреча проведена','Прогрев после встречи'].indexOf(c.stage)>=0?2:9};return hot(a)-hot(b)||(b.ov||0)-(a.ov||0)||(b.days||0)-(a.days||0)}
 var focusKey='atonMorningFocusV1',focusMemory=null,focusShown=null;
-var focusMoveNotice=null;
+var focusMoveNotice=null,focusSelected=null;
 var focusLabels={timed:'Пропущено по времени',overdue:'Просрочено',cool:'Остывают'};
 function focusClientKey(c){return c.id?'id:'+c.id:'name:'+c.fio;}
 function focusStep(c){return [c.nt||'',c.nd||'',c.ntm||''].join('|');}
@@ -857,19 +863,27 @@ function focusStepAt(c){
 function focusCalls(date){
   return new Set(ACT.filter(function(r){return r.ds===date&&r.t==='Звонок'&&r.o!=='Уже сделано ранее';}).map(function(r){return nrm(r.fio);}));
 }
+function focusIdentity(item){return (item.lead?'lead:':'client:')+item.key;}
+function focusOrder(a,b){
+  var today=new Date();today.setHours(0,0,0,0);
+  function rank(item){return item.explicit?(item.group==='cool'?2:item.at>=+today&&item.group==='timed'?0:1):3;}
+  return rank(a)-rank(b)||(a.at||0)-(b.at||0)||focusIdentity(a).localeCompare(focusIdentity(b));
+}
 function focusTimedItems(now,called){
   var items=[];
   P.forEach(function(c){
-    if(c.nt!=='Звонок'||c.stage==='Отказ/Стоп')return;
-    var at=focusStepAt(c);
-    if(at&&at<=now)items.push({key:focusClientKey(c),group:'timed',step:focusStep(c),at:at});
+    if(!c.nt||c.nt==='Встреча'||c.stage==='Отказ/Стоп')return;
+    var date=pd(c.nd);if(!date||!Number.isFinite(+date))return;
+    var at=focusStepAt(c)||+date;
+    if(at<=now)items.push({key:focusClientKey(c),group:c.ntm?'timed':'overdue',step:focusStep(c),at:at,explicit:true});
   });
   ldGet().forEach(function(lead){
-    if(lead.mark!=='active'&&lead.s==='callback'&&lead.u>0&&lead.u<=now){
-      items.push({key:leadImportKey(lead),group:'timed',lead:true,at:lead.u});
+    var at=ldDue(lead);
+    if(lead.mark!=='active'&&at>0&&at<=now){
+      items.push({key:leadImportKey(lead),group:lead.mark==='busy'?'cool':'timed',lead:true,at:at,explicit:true});
     }
   });
-  return items.sort(function(a,b){return a.at-b.at;});
+  return items.sort(focusOrder);
 }
 function focusBuild(date,now){
   var called=focusCalls(date),items=focusTimedItems(now,called);
@@ -885,7 +899,7 @@ function focusBuild(date,now){
       return count>=group[2];
     });
   });
-  return {date:date,items:items};
+  return {date:date,items:items.sort(focusOrder)};
 }
 function focusState(pin){
   var now=Date.now(),date=dstr(new Date(now)),saved=focusMemory;
@@ -897,16 +911,15 @@ function focusState(pin){
     function key(item){return item.lead?'lead:'+item.key:item.key;}
     var items=new Map(saved.items.map(function(item){return [key(item),item];}));
     var changed=false;
-    focusTimedItems(now,focusCalls(date)).forEach(function(item){
+    focusBuild(date,now).items.forEach(function(item){
       var prior=items.get(key(item));
-      if(prior&&prior.group==='timed'&&prior.at===item.at&&prior.step===item.step)return;
+      if(prior&&JSON.stringify(prior)===JSON.stringify(item))return;
       items.set(key(item),item);changed=true;
     });
     plan=saved;
     if(changed){
       var rows=Array.from(items.values());
-      var timed=rows.filter(function(item){return item.group==='timed';}).sort(function(a,b){return a.at-b.at;});
-      plan={date:date,items:timed.concat(rows.filter(function(item){return item.group!=='timed';}))};
+      plan={date:date,items:rows.sort(focusOrder)};
     }
   }else plan=focusBuild(date,now);
   if(pin&&plan!==focusMemory){
@@ -920,16 +933,16 @@ function focusReview(pin){
   var rows=plan.items.map(function(item){
     if(item.lead){
       var leadIndex=leads.findIndex(function(lead){return leadImportKey(lead)===item.key;}),lead=leads[leadIndex];
-      return {item:item,name:lead&&lead.n,note:lead&&ldWhen(item.at),leadIndex:leadIndex,lead:lead,
+      return {item:item,name:lead&&lead.n,note:lead&&[(lead.mark==='busy'?'Возврат к лиду':'Перезвон по лиду'),lead.company,ldWhen(item.at)].filter(Boolean).join(' · '),leadIndex:leadIndex,lead:lead,
         sync:lead&&leadCallbackInFlight&&lead.callbackId===leadCallbackInFlight?{reminder:true}:null,
-        done:!lead||lead.s!=='callback'||lead.u!==item.at};
+        done:!lead||lead.mark==='active'||ldDue(lead)!==item.at};
     }
     var c=P.find(function(client){return focusClientKey(client)===item.key;});
     if(!c)return {item:item,done:true};
     var sync=pending.find(function(it){return it.p&&(it.p.id&&c.id?String(it.p.id)===String(c.id):it.p.fio===c.fio);});
     var changed=focusStep(c)!==item.step;
-    var done=c.stage==='Отказ/Стоп'||(item.group!=='timed'&&called.has(nrm(c.fio)))||
-      changed&&(item.group==='timed'||focusStepAt(c)>Date.now());
+    var done=c.stage==='Отказ/Стоп'||(!item.explicit&&item.group!=='timed'&&called.has(nrm(c.fio)))||
+      changed&&(item.explicit||item.group==='timed'||focusStepAt(c)>Date.now());
     return {item:item,client:c,name:c.fio,note:[c.nd,c.ntm,c.stage].filter(Boolean).join(' · '),done:!sync&&done,sync:sync};
   });
   var left=rows.filter(function(row){return !row.done;});
@@ -952,7 +965,7 @@ function focusScreen(){
   focusShown=null;
   var h='<div class="hd focus-head"><h1>Утренний разбор</h1><button class="sq" data-to="today" aria-label="Назад на Сегодня">'+svg('back')+'</button></div>'+focusMoveMessage();
   if(!left)return h+'<div class="stat focus-done"><b>Разбор завершён</b><span>Можно начинать обычный прозвон.</span></div><button class="btn main" data-cmd="1">Начать прозвон</button>';
-  var next=review.ready[0]||review.left.find(function(row){return row.sync.fail;})||review.waiting[0],counts={timed:0,overdue:0,cool:0};
+  var next=review.ready.find(function(row){return focusIdentity(row.item)===focusSelected;})||review.ready[0]||review.left.find(function(row){return row.sync.fail;})||review.waiting[0],counts={timed:0,overdue:0,cool:0};
   review.left.forEach(function(row){counts[row.item.group]++;});
   var failed=review.left.length-review.ready.length-review.waiting.length;
   h+='<p class="sub">Разобрано '+(total-left)+' из '+total+(review.waiting.length?' · Сохраняется: '+review.waiting.length:'')+'</p>'+
@@ -962,11 +975,16 @@ function focusScreen(){
   }).join('')+'</div>';
   if(next.sync&&next.sync.reminder)return h+'<p class="note">Сохраняю перезвон в Telegram.</p>';
   focusShown=next.item;
-  h+='<button type="button" class="stat focus-next focus-'+next.item.group+'" data-focus="next" aria-label="'+esc('Открыть '+next.name)+'"><span class="lab">'+esc(focusLabels[next.item.group])+'</span><b>'+esc(next.name)+'</b><span>'+esc(next.note||'')+'</span><span class="focus-open">Карточка и история →</span></button>'+focusLastContact(next.client);
+  h+='<button type="button" class="stat focus-next focus-'+next.item.group+'" data-focus="next" aria-label="'+esc('Открыть '+next.name)+'"><span class="lab">'+esc(next.lead&&next.lead.mark==='busy'?'Возврат после «занят»':next.item.explicit&&next.item.group!=='cool'?(next.item.at<new Date().setHours(0,0,0,0)?'Пропущенный шаг':next.item.group==='timed'?'Время звонка пришло':'На сегодня'):focusLabels[next.item.group])+'</span><b>'+esc(next.name)+'</b><span>'+esc(next.note||'')+'</span><span class="focus-open">'+(next.lead?'Открыть лида →':'Карточка и история →')+'</span></button>'+focusLastContact(next.client);
   if(next.sync)return h+'<p class="note">'+(next.sync.fail?'Таблица отклонила запись. Исправь её, чтобы закрыть шаг.':'Жду подтверждения записи от таблицы.')+'</p>'+
     (next.sync.fail?'<button class="btn" data-qfo="1">Посмотреть ошибку</button>':'<button class="btn" data-qs="1">Отправить запись</button>');
   focusShown=next.item;
-  return h+focusQuick(next);
+  return h+focusQuick(next)+focusQueue(review);
+}
+function focusQueue(review){
+  return '<details class="box focus-queue"><summary>Вся очередь · '+review.left.length+'</summary>'+review.left.map(function(row){
+    return '<button type="button" class="li focus-queue-'+row.item.group+'" data-focus="pick|'+esc(focusIdentity(row.item))+'"><div class="t"><b>'+esc(row.name||'Контакт недоступен')+'</b><span class="d">'+(row.sync?'Сохранение':'Открыть →')+'</span></div><div class="w">'+esc(row.note||focusLabels[row.item.group])+'</div></button>';
+  }).join('')+'</details>';
 }
 function focusQuick(row){
   var c=row.client,numbers=[],username='',nameKey='';
@@ -988,7 +1006,7 @@ function focusQuick(row){
   }).join('');
   if(!phones)phones=c&&phCon().length&&!ambiguous?'<button class="btn" data-pk="'+esc(c.fio)+'">Привязать номер</button>':'<button class="btn" disabled>Нет номера</button>';
   var tg=username?'<a class="btn focus-tg" href="'+esc(tgHref(c,username))+'" target="_blank" rel="noopener">'+CB_TG+'Telegram</a>':'<button class="btn" disabled title="Контакт не привязан">Нет Telegram</button>';
-  var time=c?c.ntm||'11:00':new Date(row.lead.u).toTimeString().slice(0,5);
+  var time=c?c.ntm||'11:00':new Date(ldDue(row.lead)).toTimeString().slice(0,5);
   return '<div class="focus-contact">'+phones+tg+'</div><div class="focus-transfer"><div class="lab">Перенести звонок · '+esc(time)+'</div><div class="focus-dates">'+[1,2,3,7].map(function(days){
     return '<button class="btn" data-focus="move|'+days+'"'+(!c&&leadCallbackBusy?' disabled':'')+'><b>'+(days===7?'Неделя':days===1?'+1 день':'+'+days+' дн.')+'</b><span>'+dstr(focusMoveDate(days)).slice(0,5)+'</span></button>';
   }).join('')+'</div></div><div class="focus-contact">'+(c?'<button class="btn focus-log" data-focus="log">Записать звонок</button>':'')+
@@ -996,10 +1014,12 @@ function focusQuick(row){
 }
 function focusMoveDate(days){return stepDate(days,new Date());}
 function focusAction(action){
+  if(action.indexOf('pick|')===0){focusSelected=action.slice(5);draw(true);return;}
   var shown=focusShown;
   if(!shown)return;
   var row=focusReview(true).left.find(function(x){return x.item.key===shown.key&&!!x.item.lead===!!shown.lead;});
   if(!row){draw(true);return;}
+  focusSelected=null;
   if(action==='next'){
     if(row.item.lead)ldOpen(ldGet(),row.leadIndex);else card(row.name,row.client.id);
     return;
@@ -1013,9 +1033,11 @@ function focusAction(action){
     var c=row.client;
     if(stepSave(c,date,'Звонок',c.ntm||'11:00'))draw(true);
   }else{
-    var time=new Date(row.lead.u);
+    var time=new Date(ldDue(row.lead));
     date.setHours(time.getHours(),time.getMinutes(),0,0);
-    ldSaveCallback(ldGet(),row.lead,date.getTime());
+    var list=ldGet(),lead=list.find(function(item){return leadImportKey(item)===row.item.key;});
+    if(!lead){draw(true);return;}
+    ldSaveCallback(list,lead,date.getTime());
   }
 }
 function focusRefresh(){
@@ -1083,7 +1105,7 @@ function day(){
     if(!body)body='<div class="empty">На неделю ничего не запланировано</div>';
   }
   var overdue=steps.filter(function(x){return x.date<TODAY&&!x.closed;}).sort(order);
-  var carry=overdue.length?'<details class="box ld-overdue"><summary>Пропущенные шаги · '+overdue.length+'</summary>'+
+  var carry=overdue.length?'<details open class="box ld-overdue"><summary>Пропущенные шаги · '+overdue.length+'</summary>'+
     overdue.map(function(x){return row(x,true);}).join('')+'</details>':'';
   return '<div><h1>День</h1><p class="sub">Шаги клиентов и перезвоны лидов</p></div><div class="chips">'+[['t','Сегодня'],['n',tomorrow?'Завтра':WD[nw.getDay()]],['w','Неделя']].map(function(x){
     return '<button class="chip" data-dp="'+x[0]+'" aria-pressed="'+(dper===x[0])+'">'+x[1]+'</button>';
@@ -1762,7 +1784,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):'')+location.hash)}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261117-focus-daily1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1]+location.hash)}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261119-focus-unified1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1]+location.hash)}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
