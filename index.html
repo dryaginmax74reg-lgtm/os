@@ -554,24 +554,36 @@ function ldStatus(lead){
   if(at)return (lead.mark==='busy'?'Занят · ':'Перезвон · ')+ldWhen(at);
   return ldOutcomes[ldOutcome(lead)]||'Новый лид';
 }
+function searchPhoneQuery(value){
+  var text=String(value||'').trim(),digits=text.replace(/\D/g,'');
+  var phone=/[0-9]/.test(text)&&/^[+0-9\s().-]+$/.test(text);
+  return {phone:phone,valid:phone&&digits.length>=4&&digits.length<=15,digits:digits,normalized:nph(text).replace(/\D/g,'')};
+}
+function searchPhoneMatch(numbers,query){
+  return query.valid&&numbers.some(function(number){
+    var digits=nph(number).replace(/\D/g,'');
+    return digits&&digits.endsWith(query.normalized);
+  });
+}
+function searchLeadMatch(lead,text,phone){
+  return phone.phone?searchPhoneMatch(leadNumbers(lead).map(function(item){return item.phone;}),phone):
+    text&&text.split(' ').every(function(word){return ldNm(lead.n+' '+(lead.company||'')).includes(word);});
+}
 function ldRows(a,query){
   var q=ldNm(query),matches=[];
-  var phoneQuery=ldPanel==='search'&&/[0-9]/.test(q)&&/^[+0-9\s().-]+$/.test(q);
-  var phone=phoneQuery?leadPhone(q):'';
-  var words=q.split(' ');
+  var phone=searchPhoneQuery(q);
   a.forEach(function(lead,i){
     var match=ldPanel==='done'?ldOutcome(lead):ldOutcome(lead)===ldPanel;
     if(ldPanel==='search'){
-      match=phoneQuery?phone&&leadNumbers(lead).some(function(number){return number.phone===phone;}):
-        q&&words.every(function(word){return ldNm(lead.n).includes(word);});
+      match=searchLeadMatch(lead,q,phone);
     }
     if(match)matches.push({lead:lead,i:i});
   });
   if(!matches.length){
     var message='Совпадений нет.';
     if(ldPanel==='search'){
-      if(!q)message='Введи имя, фамилию или вставь номер целиком.';
-      else if(phoneQuery&&!phone)message='Введи номер целиком, включая код.';
+      if(!q)message='Введи ФИО или последние 4 и более цифры телефона.';
+      else if(phone.phone&&!phone.valid)message='Введи от 4 до 15 цифр телефона.';
     }
     return '<p class="note">'+message+'</p>';
   }
@@ -588,7 +600,7 @@ function ldS(){
   if(!a.length)return h+'<p class="note">Загрузи Excel или CSV с колонками «Компания», «ФИО» и «Номер 1–3». Файл и номера остаются на устройстве.</p>'+upload;
   if(ldPanel){
     return h+'<button class="btn" data-ld="queue">← К прозвону</button><h2>'+({search:'Найти лида',done:'Обработано',int:'Интерес',ref:'Отказ'})[ldPanel]+'</h2>'+
-      (ldPanel==='search'?'<input class="ld-search" id="ld-search" type="search" aria-label="ФИО или телефон лида" placeholder="ФИО или номер телефона" autocomplete="off" value="'+esc(ldQuery)+'">':'')+
+      (ldPanel==='search'?'<input class="ld-search" id="ld-search" type="search" aria-label="ФИО или телефон лида" placeholder="ФИО или последние цифры телефона" autocomplete="off" value="'+esc(ldQuery)+'">':'')+
       '<div id="ld-results">'+ldRows(a,ldQuery)+'</div>';
   }
   var counts={done:0,int:0,ref:0};
@@ -1155,8 +1167,25 @@ var ch=chGet();if(ch.length>=30){var bl=[[9,11],[11,13],[13,15],[15,17],[17,20]]
 h+='<span class="lab" style="margin-top:6px">По часам · с этого телефона</span>'+hr.map(function(r,i){return '<div class="bt'+(bi===i?' best':'')+'" style="grid-template-columns:3.6rem 1fr auto"><span>'+r.l+'</span><i><b style="width:'+r.p+'%"></b></i><span>'+(r.n?r.p+'%':'—')+' <small>'+r.n+' зв.</small></span></div>'}).join('')}
 else h+='<span class="sub" style="margin:0">Часы появятся после 30 звонков: время в журнале не пишется, приложение начало считать его само, '+ch.length+'/30.</span>';
 return h+'</div>'}
-function find(){var k=q.toLowerCase().replace(/ё/g,'е').trim();var a=k?P.filter(function(c){return (c.fio+' '+c.who+' '+c.note).toLowerCase().replace(/ё/g,'е').indexOf(k)>-1}):[];
-return '<div><h1>Клиенты</h1><p class="sub">Введите фамилию целиком и нажмите «Найти»</p></div><div class="sbox"><input type="search" id="q" value="'+esc(q)+'" placeholder="Фамилия" enterkeyhint="search" autocomplete="off"></div><button class="btn main" id="gq">Найти</button><button class="btn" data-nw="1">+ Новый клиент</button>'+(k?(a.length?list(a):'<div class="empty">Никого не нашёл</div>'):recent())}
+function find(){
+ var k=ldNm(q),phone=searchPhoneQuery(k);
+ var a=k?P.filter(function(c){
+   if(phone.phone){var contact=phFor(c);return contact&&searchPhoneMatch(contact[1],phone);}
+   return ldNm(c.fio+' '+c.who+' '+c.note).indexOf(k)>-1;
+ }):[];
+ var leads=k?ldGet().map(function(lead,i){return {lead:lead,index:i};}).filter(function(item){return searchLeadMatch(item.lead,k,phone);}):[];
+ var body='';
+ if(k){
+   if(phone.phone&&!phone.valid)body='<div class="empty">Введи от 4 до 15 цифр телефона.</div>';
+   else if(!a.length&&!leads.length)body='<div class="empty">Никого не нашёл</div>';
+   else{
+     if(a.length)body+='<div class="lab">Клиенты · '+a.length+'</div>'+list(a);
+     if(leads.length)body+='<div class="lab">Лиды · '+leads.length+'</div>'+leads.slice(0,20).map(function(item){return '<button class="li ld-result" data-ld="open|'+item.index+'"><b>'+esc(item.lead.n)+'</b><span>'+esc([item.lead.company,ldStatus(item.lead)].filter(Boolean).join(' · '))+'</span></button>';}).join('')+(leads.length>20?'<p class="note">Показаны первые 20. Добавь цифры или уточни ФИО.</p>':'');
+   }
+ }
+ return '<div><h1>Клиенты</h1><p class="sub">Поиск клиентов и лидов по ФИО или последним 4+ цифрам телефона</p></div><div class="sbox"><input type="search" id="q" value="'+esc(q)+'" placeholder="ФИО или последние цифры" enterkeyhint="search" autocomplete="off"></div><button class="btn main" id="gq">Найти</button><button class="btn" data-nw="1">+ Новый клиент</button>'+(k?body:recent());
+}
+
 function recent(){var a=P.filter(function(c){return c.stage!=='Отказ/Стоп'&&c.days!=null}).sort(function(x,y){return x.days-y.days}).slice(0,4);if(!a.length)return '';var cs=['var(--c-red)','var(--c-ora)','var(--c-blu)','var(--c-grn)'];return '<div class="lab" style="font-weight:800">Недавние</div><div class="rc">'+a.map(function(c,i){return '<button style="background:'+cs[i]+'" data-c="'+esc(c.fio)+'"><b>'+esc(c.fio)+'</b><span>'+esc(c.stage||'без стадии')+' · '+c.days+' дн.</span></button>'}).join('')+'</div>'}
 /* карточка */
 
@@ -1785,7 +1814,7 @@ if(t)LS('v67t',t);else t=LS('v67t');
 try{if(!t||!a){var x=JSON.parse(sessionStorage.getItem('hq')||'null');if(x){t=t||x[0];a=a||x[1]}}}catch(e){}
 if(q.get('t')||q.get('b')){try{history.replaceState(null,'',location.pathname+(a?'?a='+encodeURIComponent(a):'')+location.hash)}catch(e){}}
 API=a||'';QT=t||'';
-var BUILD='20261119-lead-quick-marks1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1]+location.hash)}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
+var BUILD='20261120-phone-suffix1';function chkB(){try{fetch(location.pathname,{cache:'no-store'}).then(function(r){return r.text()}).then(function(x){var m=/var BUILD='([^']+)'/.exec(x);if(m&&m[1]!==BUILD&&sessionStorage.getItem('bld')!==m[1]){sessionStorage.setItem('bld',m[1]);location.replace(location.pathname+'?b='+m[1]+location.hash)}}).catch(function(){})}catch(e){}}chkB();document.addEventListener('visibilitychange',function(){if(!document.hidden)chkB()});
 if(!a){D={error:'Откройте ссылку из бота: команда /ссылка.'};start();return}
 var CK='v67cache';
 function call(fn,args){return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({api:'v67',fn:fn,args:args||[]})}).then(function(r){return r.json()})}
